@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch Ad - Earn Money</title>
     
-    <!-- Telegram Web App Script -->
+    <!-- Telegram Web App Script (Required First) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- RichAds TMA SDK -->
+    <!-- RichAds Integration (Your Actual Code) -->
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+        window.TelegramAdsController = new TelegramAdsController();
+        window.TelegramAdsController.initialize({
+            pubId: "993542",
+            appId: "4642",
+        });
+    </script>
     
     <style>
         * {
@@ -106,12 +113,6 @@
             background: linear-gradient(90deg, #2ed573, #26de81);
             width: 0%;
             transition: width 0.3s ease;
-            animation: progress 3s ease-in-out;
-        }
-        
-        @keyframes progress {
-            0% { width: 0%; }
-            100% { width: 100%; }
         }
     </style>
 </head>
@@ -128,28 +129,26 @@
     </div>
 
     <script>
-        // Configuration - Replace these with your actual values
+        // ========================================
+        // CONFIGURATION
+        // ========================================
         const CONFIG = {
-            // Your backend API (Render URL)
+            // Your bot backend API URL
             API_URL: 'https://earningtgbot.onrender.com/ad-completed',
             
-            // RichAds credentials (get from RichAds dashboard)
-            PUB_ID: 'YOUR_PUBLISHER_ID',  // Replace with your Publisher ID
-            APP_ID: 'YOUR_APP_ID',        // Replace with your App ID
-            
-            // Debug mode (set to false in production)
-            DEBUG: true
+            // Debug mode (set to false in production after testing)
+            DEBUG: false
         };
         
-        // Initialize Telegram Web App
+        // ========================================
+        // INITIALIZE TELEGRAM WEB APP
+        // ========================================
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        
-        // Disable vertical swipe
         tg.disableVerticalSwipes();
         
-        // Get user_id from initData
+        // Get user info from Telegram
         const initData = tg.initDataUnsafe;
         const userId = initData?.user?.id;
         
@@ -157,26 +156,27 @@
         const statusEl = document.getElementById('status');
         const progressEl = document.getElementById('progress');
         
-        // Logging function
+        // ========================================
+        // HELPER FUNCTIONS
+        // ========================================
         function log(message, type = 'info') {
             console.log(`[${type.toUpperCase()}] ${message}`);
-            if (CONFIG.DEBUG) {
-                statusEl.textContent = message;
-                statusEl.className = 'status';
-                if (type === 'error') statusEl.classList.add('error');
-                if (type === 'success') statusEl.classList.add('success');
-            }
+            statusEl.textContent = message;
+            statusEl.className = 'status';
+            if (type === 'error') statusEl.classList.add('error');
+            if (type === 'success') statusEl.classList.add('success');
         }
         
-        // Update progress bar
         function updateProgress(percent) {
             progressEl.style.width = percent + '%';
         }
         
-        // Send result to backend
+        // ========================================
+        // SEND RESULT TO BOT BACKEND
+        // ========================================
         async function notifyBackend(result) {
             try {
-                log('Sending reward to your account...', 'info');
+                log('Processing your reward...', 'info');
                 updateProgress(80);
                 
                 const response = await fetch(CONFIG.API_URL, {
@@ -192,10 +192,10 @@
                 });
                 
                 const data = await response.json();
-                log(`✅ Success! You earned ₹${data.reward || 3}`, 'success');
+                log(`✅ You earned ₹${data.reward || 3}!`, 'success');
                 updateProgress(100);
                 
-                // Close app after 2 seconds
+                // Close Mini App after 2 seconds
                 setTimeout(() => {
                     tg.close();
                 }, 2000);
@@ -211,7 +211,9 @@
             }
         }
         
-        // Main ad loading function
+        // ========================================
+        // LOAD AND PLAY RICHADS VIDEO AD
+        // ========================================
         async function loadAndPlayAd() {
             try {
                 // Validate user
@@ -221,64 +223,64 @@
                     return;
                 }
                 
-                log('Initializing RichAds...', 'info');
+                log('Preparing ad...', 'info');
                 updateProgress(20);
                 
-                // Check if RichAds SDK loaded
+                // Check if RichAds SDK is loaded
                 if (typeof window.TelegramAdsController === 'undefined') {
                     throw new Error('RichAds SDK not loaded');
                 }
                 
-                // Initialize RichAds Controller
-                const richadsController = new window.TelegramAdsController();
-                
-                await richadsController.initialize({
-                    pubId: CONFIG.PUB_ID,
-                    appId: CONFIG.APP_ID,
-                    debug: CONFIG.DEBUG
-                });
-                
-                log('Loading ad...', 'info');
+                log('Loading video ad...', 'info');
                 updateProgress(40);
                 
-                // Small delay to show loading state
+                // Small delay for better UX
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                log('▶️ Playing ad...', 'info');
+                log('▶️ Starting ad...', 'info');
                 updateProgress(60);
                 
-                // Trigger video ad
-                const result = await richadsController.triggerInterstitialVideo();
+                // Trigger Interstitial Video Ad from RichAds
+                const result = await window.TelegramAdsController.triggerInterstitialVideo();
                 
+                console.log('Ad result:', result);
                 log('Ad completed successfully!', 'success');
                 
-                // Notify backend and close
+                // Notify backend and reward user
                 await notifyBackend('success');
                 
             } catch (error) {
-                log('❌ Ad failed to load', 'error');
+                log('❌ Failed to load ad', 'error');
                 console.error('Ad error:', error);
                 
-                // If in debug mode and no real ads, simulate success for testing
-                if (CONFIG.DEBUG && error.message.includes('not loaded')) {
-                    log('⚠️ Debug mode: Simulating ad completion', 'info');
+                // In debug mode, still give reward for testing
+                if (CONFIG.DEBUG) {
+                    log('⚠️ Debug mode: Simulating completion', 'info');
                     setTimeout(async () => {
                         await notifyBackend('success');
                     }, 2000);
                 } else {
-                    setTimeout(() => tg.close(), 3000);
+                    // In production, close without reward if ad fails
+                    setTimeout(() => {
+                        tg.close();
+                    }, 3000);
                 }
             }
         }
         
-        // Start the process
-        log('Preparing ad...', 'info');
+        // ========================================
+        // START THE PROCESS
+        // ========================================
+        log('Initializing...', 'info');
         updateProgress(10);
         
-        // Wait for everything to load, then start
-        setTimeout(() => {
-            loadAndPlayAd();
-        }, 1000);
+        // Wait for everything to load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, starting ad in 1 second...');
+            setTimeout(() => {
+                loadAndPlayAd();
+            }, 1000);
+        });
         
     </script>
 </body>
