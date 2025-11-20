@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Ad - Earn Money</title>
+    
+    <!-- Telegram Web App Script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- RichAds TMA SDK -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status {
+            font-size: 18px;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .success {
+            background: rgba(46, 213, 115, 0.2);
+            border: 2px solid #2ed573;
+        }
+        
+        .error {
+            background: rgba(255, 71, 87, 0.2);
+            border: 2px solid #ff4757;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2ed573, #26de81);
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: progress 3s ease-in-out;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📺</div>
+        <div class="title">Loading Ad...</div>
+        <div class="subtitle">Get ready to earn ₹3!</div>
+        <div class="spinner"></div>
+        <div class="status" id="status">Initializing ad player...</div>
+        <div class="progress">
+            <div class="progress-bar" id="progress"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace these with your actual values
+        const CONFIG = {
+            // Your backend API (Render URL)
+            API_URL: 'https://earningtgbot.onrender.com/ad-completed',
+            
+            // RichAds credentials (get from RichAds dashboard)
+            PUB_ID: 'YOUR_PUBLISHER_ID',  // Replace with your Publisher ID
+            APP_ID: 'YOUR_APP_ID',        // Replace with your App ID
+            
+            // Debug mode (set to false in production)
+            DEBUG: true
+        };
+        
+        // Initialize Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Disable vertical swipe
+        tg.disableVerticalSwipes();
+        
+        // Get user_id from initData
+        const initData = tg.initDataUnsafe;
+        const userId = initData?.user?.id;
+        
+        // DOM elements
+        const statusEl = document.getElementById('status');
+        const progressEl = document.getElementById('progress');
+        
+        // Logging function
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            if (CONFIG.DEBUG) {
+                statusEl.textContent = message;
+                statusEl.className = 'status';
+                if (type === 'error') statusEl.classList.add('error');
+                if (type === 'success') statusEl.classList.add('success');
+            }
+        }
+        
+        // Update progress bar
+        function updateProgress(percent) {
+            progressEl.style.width = percent + '%';
+        }
+        
+        // Send result to backend
+        async function notifyBackend(result) {
+            try {
+                log('Sending reward to your account...', 'info');
+                updateProgress(80);
+                
+                const response = await fetch(CONFIG.API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        result: result,
+                        timestamp: Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                log(`✅ Success! You earned ₹${data.reward || 3}`, 'success');
+                updateProgress(100);
+                
+                // Close app after 2 seconds
+                setTimeout(() => {
+                    tg.close();
+                }, 2000);
+                
+            } catch (error) {
+                log('❌ Error processing reward', 'error');
+                console.error('Backend error:', error);
+                
+                // Still close after error
+                setTimeout(() => {
+                    tg.close();
+                }, 3000);
+            }
+        }
+        
+        // Main ad loading function
+        async function loadAndPlayAd() {
+            try {
+                // Validate user
+                if (!userId) {
+                    log('❌ User ID not found', 'error');
+                    setTimeout(() => tg.close(), 2000);
+                    return;
+                }
+                
+                log('Initializing RichAds...', 'info');
+                updateProgress(20);
+                
+                // Check if RichAds SDK loaded
+                if (typeof window.TelegramAdsController === 'undefined') {
+                    throw new Error('RichAds SDK not loaded');
+                }
+                
+                // Initialize RichAds Controller
+                const richadsController = new window.TelegramAdsController();
+                
+                await richadsController.initialize({
+                    pubId: CONFIG.PUB_ID,
+                    appId: CONFIG.APP_ID,
+                    debug: CONFIG.DEBUG
+                });
+                
+                log('Loading ad...', 'info');
+                updateProgress(40);
+                
+                // Small delay to show loading state
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                log('▶️ Playing ad...', 'info');
+                updateProgress(60);
+                
+                // Trigger video ad
+                const result = await richadsController.triggerInterstitialVideo();
+                
+                log('Ad completed successfully!', 'success');
+                
+                // Notify backend and close
+                await notifyBackend('success');
+                
+            } catch (error) {
+                log('❌ Ad failed to load', 'error');
+                console.error('Ad error:', error);
+                
+                // If in debug mode and no real ads, simulate success for testing
+                if (CONFIG.DEBUG && error.message.includes('not loaded')) {
+                    log('⚠️ Debug mode: Simulating ad completion', 'info');
+                    setTimeout(async () => {
+                        await notifyBackend('success');
+                    }, 2000);
+                } else {
+                    setTimeout(() => tg.close(), 3000);
+                }
+            }
+        }
+        
+        // Start the process
+        log('Preparing ad...', 'info');
+        updateProgress(10);
+        
+        // Wait for everything to load, then start
+        setTimeout(() => {
+            loadAndPlayAd();
+        }, 1000);
+        
+    </script>
+</body>
+</html>
