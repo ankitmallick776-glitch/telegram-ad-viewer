@@ -8,15 +8,8 @@
     <!-- Telegram Web App Script (Required First) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- RichAds Integration (Your Actual Code) -->
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-    <script>
-        window.TelegramAdsController = new TelegramAdsController();
-        window.TelegramAdsController.initialize({
-            pubId: "993542",
-            appId: "4642",
-        });
-    </script>
+    <!-- Monetag SDK Integration -->
+    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
     
     <style>
         * {
@@ -136,7 +129,7 @@
             // Your bot backend API URL
             API_URL: 'https://earningtgbot.onrender.com/ad-completed',
             
-            // Debug mode (set to false in production after testing)
+            // Debug mode (set to false in production)
             DEBUG: false
         };
         
@@ -212,7 +205,7 @@
         }
         
         // ========================================
-        // LOAD AND PLAY RICHADS VIDEO AD
+        // LOAD AND PLAY MONETAG VIDEO AD
         // ========================================
         async function loadAndPlayAd() {
             try {
@@ -226,9 +219,9 @@
                 log('Preparing ad...', 'info');
                 updateProgress(20);
                 
-                // Check if RichAds SDK is loaded
-                if (typeof window.TelegramAdsController === 'undefined') {
-                    throw new Error('RichAds SDK not loaded');
+                // Check if Monetag SDK is loaded
+                if (typeof show_10214030 === 'undefined') {
+                    throw new Error('Monetag SDK not loaded');
                 }
                 
                 log('Loading video ad...', 'info');
@@ -240,14 +233,15 @@
                 log('▶️ Starting ad...', 'info');
                 updateProgress(60);
                 
-                // Trigger Interstitial Video Ad from RichAds
-                const result = await window.TelegramAdsController.triggerInterstitialVideo();
-                
-                console.log('Ad result:', result);
-                log('Ad completed successfully!', 'success');
-                
-                // Notify backend and reward user
-                await notifyBackend('success');
+                // Trigger Monetag Rewarded Interstitial Video Ad
+                await show_10214030().then(() => {
+                    // This executes AFTER user watches the ad
+                    console.log('Ad watched successfully!');
+                    log('Ad completed successfully!', 'success');
+                    
+                    // Notify backend and reward user
+                    notifyBackend('success');
+                });
                 
             } catch (error) {
                 log('❌ Failed to load ad', 'error');
