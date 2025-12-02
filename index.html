@@ -3,363 +3,53 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CashyAds - Watch Ads & Earn</title>
-  <meta name="description" content="Watch premium video ads and earn instant cash rewards!">
+  <title>CashyAds Video Ads</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      color: #333;
-    }
-    
-    .container {
-      max-width: 400px;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    
-    .logo {
-      font-size: 2.2em;
-      font-weight: bold;
-      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
-    }
-    
-    .subtitle {
-      color: #666;
-      margin-bottom: 30px;
-      font-size: 1.1em;
-    }
-    
-    .balance-card {
-      background: linear-gradient(45deg, #ff9a9e, #fecfef);
-      border-radius: 15px;
-      padding: 20px;
-      margin: 20px 0;
-      color: #333;
-    }
-    
-    .balance-amount {
-      font-size: 2.5em;
-      font-weight: bold;
-      color: #d63384;
-      margin-bottom: 5px;
-    }
-    
-    .balance-label {
-      font-size: 0.9em;
-      opacity: 0.8;
-    }
-    
-    .watch-ad-btn {
-      background: linear-gradient(45deg, #ff6b6b, #feca57);
-      color: white;
-      border: none;
-      padding: 18px 40px;
-      border-radius: 50px;
-      font-size: 1.3em;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin: 20px 0;
-      box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
-      width: 100%;
-    }
-    
-    .watch-ad-btn:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
-    }
-    
-    .watch-ad-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    .claim-btn {
-      background: linear-gradient(45deg, #4ecdc4, #44a08d);
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      border-radius: 25px;
-      font-size: 1.1em;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin: 15px 0;
-      box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
-      width: 100%;
-    }
-    
-    .claim-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 35px rgba(78, 205, 196, 0.6);
-    }
-    
-    .claim-btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
-    }
-    
-    .message {
-      margin: 20px 0;
-      padding: 15px;
-      border-radius: 10px;
-      font-weight: 500;
-      min-height: 20px;
-    }
-    
-    .message.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .message.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    .message.loading {
-      background: #d1ecf1;
-      color: #0c5460;
-      border: 1px solid #bee5eb;
-    }
-    
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      margin: 20px 0;
-      font-size: 0.9em;
-    }
-    
-    .stat {
-      text-align: center;
-      padding: 10px;
-    }
-    
-    .stat-number {
-      font-weight: bold;
-      font-size: 1.2em;
-      color: #1a73e8;
-    }
-    
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #3498db;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    @media (max-width: 480px) {
-      .container {
-        margin: 10px;
-        padding: 20px;
-      }
-    }
+    body { font-family: Arial, sans-serif; max-width: 400px; margin: 40px auto; padding: 20px; text-align: center; }
+    button { background: #1a73e8; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #status { margin: 20px 0; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="logo">💰 CashyAds</div>
-    <div class="subtitle">Watch premium video ads & earn instant rewards!</div>
-    
-    <div class="balance-card">
-      <div class="balance-amount" id="balance">₹0.00</div>
-      <div class="balance-label">Available Balance</div>
-    </div>
-    
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-number" id="adsWatched">0</div>
-        <span>Ads Watched</span>
-      </div>
-      <div class="stat">
-        <div class="stat-number" id="totalEarnings">₹0.00</div>
-        <span>Total Earned</span>
-      </div>
-    </div>
-    
-    <button class="watch-ad-btn" id="watchAdBtn">
-      ▶️ Watch Video Ad (25s)
-    </button>
-    
-    <button class="claim-btn" id="claimRewardBtn" disabled>
-      💎 Claim Reward (₹3-5)
-    </button>
-    
-    <div id="message"></div>
-  </div>
+  <h1>🎬 Premium Video Ads</h1>
+  <p>Watch 25s video → Earn ₹3-5 instantly!</p>
+  
+  <button id="showAd">▶️ Watch Video Ad</button>
+  <div id="status"></div>
 
   <!-- Monetag SDK -->
   <script src="//libtl.com/sdk.js" data-zone="10214030" data-sdk="show_10214030"></script>
   
   <script>
-    // Configuration - UPDATE THESE URLs
-    const CONFIG = {
-      apiBaseUrl: 'http://103.138.96.188:8001', // Replace with your VPS IP:PORT
-      // OR use your domain: 'https://yourdomain.com'
-    };
-
-    // Get Telegram user ID from initData (passed by Telegram Mini App)
-    function getTelegramUserId() {
+    // YOUR VPS API URL - UPDATE THIS
+    const API_URL = 'http://103.138.96.188:8001/cashyads/ad-completed';
+    
+    // Get Telegram user ID from WebApp
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 123456789;
+    
+    document.getElementById('showAd').onclick = async () => {
+      document.getElementById('status').textContent = 'Loading ad...';
+      
       try {
-        // Telegram passes user data via initData
-        const initData = new URLSearchParams(window.Telegram?.WebApp?.initData || '');
-        const userData = JSON.parse(atob(initData.get('user') || '{}'));
-        return userData?.id || null;
-      } catch {
-        // Fallback: you can set manually for testing
-        return null; // Will use demo mode
-      }
-    }
-
-    const watchAdBtn = document.getElementById('watchAdBtn');
-    const claimRewardBtn = document.getElementById('claimRewardBtn');
-    const balanceEl = document.getElementById('balance');
-    const adsWatchedEl = document.getElementById('adsWatched');
-    const totalEarningsEl = document.getElementById('totalEarnings');
-    const messageEl = document.getElementById('message');
-
-    let currentUserId = getTelegramUserId();
-    let adRewardEarned = 0;
-    let isAdWatched = false;
-
-    // Demo mode if no Telegram user ID
-    if (!currentUserId) {
-      currentUserId = 123456789; // Demo user ID
-      console.log('Demo mode - using user ID:', currentUserId);
-    }
-
-    function showMessage(text, type = 'loading') {
-      messageEl.textContent = text;
-      messageEl.className = `message ${type}`;
-    }
-
-    function updateUI(data) {
-      if (data.success) {
-        balanceEl.textContent = `₹${data.new_balance.toFixed(2)}`;
-        adRewardEarned = data.reward;
-        isAdWatched = true;
-        claimRewardBtn.disabled = false;
-        showMessage(`🎉 Ready to claim ₹${data.reward}!`, 'success');
-      }
-    }
-
-    // Watch Ad Button
-    watchAdBtn.addEventListener('click', async () => {
-      watchAdBtn.disabled = true;
-      showMessage('Loading premium ad...', 'loading');
-
-      try {
-        // Show Monetag rewarded video ad
+        // Show Monetag rewarded ad
         await show_10214030();
-
-        // Ad completed successfully!
-        showMessage('✅ Ad watched successfully! Click claim reward.', 'success');
-        claimRewardBtn.disabled = false;
-        isAdWatched = true;
-
-      } catch (error) {
-        console.error('Ad error:', error);
-        showMessage('❌ Failed to load ad. Please try again.', 'error');
-      } finally {
-        watchAdBtn.disabled = false;
-        watchAdBtn.textContent = '▶️ Watch Another Ad (25s)';
-      }
-    });
-
-    // Claim Reward Button
-    claimRewardBtn.addEventListener('click', async () => {
-      if (!isAdWatched) {
-        showMessage('⚠️ Please watch ad first!', 'error');
-        return;
-      }
-
-      claimRewardBtn.disabled = true;
-      showMessage('🔄 Claiming your reward...', 'loading');
-
-      try {
-        const response = await fetch(`${CONFIG.apiBaseUrl}/cashyads/ad-completed`, {
+        
+        // Call your bot backend after ad completion
+        const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ 
-            user_id: currentUserId, 
-            result: 'video_completed' 
-          })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({user_id: userId, result: 'video_completed'})
         });
-
+        
         const data = await response.json();
-
-        if (data.success) {
-          // Update all UI elements
-          balanceEl.textContent = `₹${data.new_balance.toFixed(2)}`;
+        document.getElementById('status').textContent = 
+          data.success ? `✅ ₹${data.reward} credited! Balance: ₹${data.new_balance}` : '❌ Reward failed';
           
-          // Simulate fetching updated stats (you can add real API call)
-          adsWatchedEl.textContent = parseInt(adsWatchedEl.textContent) + 1;
-          
-          showMessage(`🎉 ₹${data.reward} credited successfully!`, 'success');
-          
-          // Reset for next ad
-          isAdWatched = false;
-          setTimeout(() => {
-            claimRewardBtn.disabled = true;
-            showMessage('');
-          }, 3000);
-
-        } else {
-          showMessage(`❌ ${data.message || 'Claim failed'}`, 'error');
-        }
-      } catch (error) {
-        console.error('Claim error:', error);
-        showMessage('❌ Network error. Check your connection.', 'error');
-      } finally {
-        claimRewardBtn.disabled = false;
+      } catch(e) {
+        document.getElementById('status').textContent = '❌ Ad failed';
       }
-    });
-
-    // Initialize Telegram WebApp (optional)
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    }
-
-    // Load initial balance (optional)
-    console.log('CashyAds Mini App loaded. User ID:', currentUserId);
+    };
   </script>
 </body>
 </html>
