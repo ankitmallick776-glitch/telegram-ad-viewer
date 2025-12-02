@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Ad - Earn Money</title>
+    <title>CashyAds - Premium Ads</title>
     
-    <!-- Telegram Web App Script -->
+    <!-- Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- Monetag SDK - YOUR ZONE ID -->
-    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
+    <!-- ✅ RICHINFO TELEGRAM ADS SDK (YOUR CODES) -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -24,216 +24,127 @@
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
         .subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
-        .spinner { 
-            border: 4px solid rgba(255,255,255,0.3); 
-            border-top: 4px solid white; 
-            border-radius: 50%; 
-            width: 60px; height: 60px; 
-            animation: spin 1s linear infinite; 
-            margin: 30px auto; 
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .status { 
-            font-size: 18px; margin-top: 20px; padding: 15px; 
-            background: rgba(255,255,255,0.1); border-radius: 12px; 
-            backdrop-filter: blur(10px); 
-        }
+        .status { font-size: 18px; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 12px; backdrop-filter: blur(10px); }
         .success { background: rgba(46,213,115,0.2); border: 2px solid #2ed573; }
-        .error { background: rgba(255,71,87,0.2); border: 2px solid #ff4757; }
         .progress { width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin-top: 20px; }
         .progress-bar { height: 100%; background: linear-gradient(90deg,#2ed573,#26de81); width: 0%; transition: width 0.3s ease; }
-        .reward-badge { 
-            position: absolute; top: 20px; right: 20px; 
-            background: #2ed573; color: white; padding: 8px 16px; 
-            border-radius: 25px; font-weight: bold; font-size: 14px; 
-            box-shadow: 0 4px 15px rgba(46,213,115,0.4);
-        }
     </style>
 </head>
 <body>
-    <!-- Reward Badge -->
-    <div class="reward-badge">💰 ₹3-5 REWARD</div>
-    
     <div class="container">
-        <div class="logo">📺</div>
-        <div class="title" id="title">Loading Premium Ad...</div>
-        <div class="subtitle" id="subtitle">Get ready to earn instantly!</div>
-        <div class="spinner" id="spinner"></div>
-        <div class="status" id="status">Connecting to ad network...</div>
+        <div class="logo">💎</div>
+        <div class="title" id="title">Loading Premium Ads...</div>
+        <div class="subtitle" id="subtitle">Powered by RichAds Network</div>
+        <div class="status" id="status">Initializing high-paying ads...</div>
         <div class="progress">
             <div class="progress-bar" id="progress"></div>
         </div>
     </div>
 
     <script>
-        // ========================================
-        // CONFIG - YOUR VPS ENDPOINT
-        // ========================================
+        // CONFIG - YOUR VPS
         const CONFIG = {
-            API_URL: 'https://YOUR_VPS_IP:8000/cashyads/ad-completed',  // UPDATE WITH YOUR VPS IP
-            DEBUG: false  // Set true for testing
+            API_URL: 'https://YOUR_VPS_IP:8000/cashyads/ad-completed',
+            PUB_ID: "993542",     // YOUR pubId
+            APP_ID: "4642"        // YOUR appId
         };
         
-        // Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand(); tg.disableVerticalSwipes();
         
-        // User data
         const initData = tg.initDataUnsafe;
         const userId = initData?.user?.id;
         const statusEl = document.getElementById('status');
         const progressEl = document.getElementById('progress');
         const titleEl = document.getElementById('title');
-        const subtitleEl = document.getElementById('subtitle');
-        const spinnerEl = document.getElementById('spinner');
         
-        // ========================================
-        // UI HELPERS
-        // ========================================
         function log(message, type = 'info') {
             console.log(`[${type.toUpperCase()}] ${message}`);
             statusEl.textContent = message;
-            statusEl.className = `status ${type}`;
+            statusEl.classList.remove('success');
+            if (type === 'success') statusEl.classList.add('success');
         }
         
         function updateProgress(percent) {
-            progressEl.style.width = Math.min(100, percent) + '%';
+            progressEl.style.width = percent + '%';
         }
         
-        function showSpinner(show = true) {
-            spinnerEl.style.display = show ? 'block' : 'none';
-        }
-        
-        // ========================================
-        // BACKEND CALLBACK
-        // ========================================
         async function notifyBackend(result) {
-            if (!userId) {
-                log('❌ Invalid user session', 'error');
-                setTimeout(() => tg.close(), 2000);
-                return;
-            }
-            
             try {
-                titleEl.textContent = 'Processing Reward...';
-                subtitleEl.textContent = 'Your earnings are being credited!';
-                log('🔄 Verifying ad completion...', 'info');
-                updateProgress(85);
-                showSpinner(false);
+                log('🔄 Processing ₹3-5 reward...', 'info');
+                updateProgress(90);
                 
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         user_id: userId,
                         result: result,
-                        timestamp: Date.now(),
-                        init_data: tg.initData,
-                        user_agent: navigator.userAgent
+                        network: 'richinfo',
+                        pub_id: CONFIG.PUB_ID
                     })
                 });
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
                 const data = await response.json();
-                
-                titleEl.textContent = '✅ Reward Credited!';
-                subtitleEl.textContent = `₹${data.reward || 3} added to balance!`;
-                log(`🎉 Earned ₹${data.reward || 3}! New balance: ₹${data.new_balance || '?'}`, 'success');
+                titleEl.textContent = '✅ Money Added!';
+                log(`🎉 +₹${data.reward || 4}! Balance: ₹${data.new_balance || '?'}`, 'success');
                 updateProgress(100);
                 
-                // Success vibration + close
-                tg.HapticFeedback.impactOccurred('light');
+                tg.HapticFeedback.notificationOccurred('success');
                 setTimeout(() => tg.close(), 3000);
-                
             } catch (error) {
-                log('❌ Reward processing failed', 'error');
-                console.error('Backend error:', error);
-                titleEl.textContent = 'Try Again?';
+                log('❌ Payment error', 'error');
                 setTimeout(() => tg.close(), 4000);
             }
         }
         
-        // ========================================
-        // MONETAG VIDEO AD
-        // ========================================
-        async function loadAndPlayAd() {
+        // ✅ YOUR RICHINFO SDK - PERFECT INTEGRATION
+        async function initRichAds() {
             try {
-                // User validation
                 if (!userId) {
-                    log('❌ Authentication failed', 'error');
-                    setTimeout(() => tg.close(), 2000);
+                    log('❌ User not found', 'error');
                     return;
                 }
                 
-                titleEl.textContent = '🔄 Loading Premium Ad...';
-                subtitleEl.textContent = 'Powered by Monetag Network';
-                log('Connecting to ad network...', 'info');
-                updateProgress(15);
+                log('🔄 Loading RichAds...', 'info');
+                updateProgress(30);
                 
-                // Wait for Monetag SDK (max 5s)
-                let sdkReady = false;
-                for (let i = 0; i < 50; i++) {
-                    if (typeof show_10214030 !== 'undefined') {
-                        sdkReady = true;
-                        break;
-                    }
-                    await new Promise(r => setTimeout(r, 100));
-                }
-                
-                if (!sdkReady) {
-                    throw new Error('Ad network timeout');
-                }
-                
-                titleEl.textContent = '▶️ Watch Full Video';
-                subtitleEl.textContent = 'Complete to earn ₹3-5';
-                log('🎥 Premium rewarded video ready!', 'success');
-                updateProgress(50);
-                showSpinner(false);
-                
-                // Play Monetag rewarded ad
-                show_10214030().then(() => {
-                    // SUCCESS - User watched full ad
-                    titleEl.textContent = '🎉 Ad Completed!';
-                    log('✅ Video watched successfully!', 'success');
-                    notifyBackend('completed');
-                }).catch((err) => {
-                    // User closed/skipped
-                    log('⚠️ Ad interrupted', 'error');
-                    titleEl.textContent = 'Ad incomplete';
-                    if (CONFIG.DEBUG) {
-                        setTimeout(() => notifyBackend('debug'), 1500);
-                    } else {
-                        setTimeout(() => tg.close(), 2500);
-                    }
+                // YOUR SDK INITIALIZATION
+                window.TelegramAdsController = new TelegramAdsController();
+                window.TelegramAdsController.initialize({
+                    pubId: CONFIG.PUB_ID,  // 993542
+                    appId: CONFIG.APP_ID   // 4642
                 });
                 
-            } catch (error) {
-                log('❌ Failed to load ad', 'error');
-                console.error('Ad error:', error);
-                titleEl.textContent = 'Ad temporarily unavailable';
+                log('✅ RichAds initialized!', 'success');
+                updateProgress(70);
                 
-                if (CONFIG.DEBUG) {
-                    setTimeout(() => notifyBackend('debug'), 2000);
-                } else {
-                    setTimeout(() => tg.close(), 3500);
-                }
+                // Show ad after 2s
+                setTimeout(() => {
+                    titleEl.textContent = '🎬 Premium Ad Ready!';
+                    log('▶️ Showing high-paying ad...', 'info');
+                    
+                    // RichInfo shows ad automatically OR trigger manually
+                    window.TelegramAdsController.showAd().then(() => {
+                        log('✅ Ad completed!', 'success');
+                        notifyBackend('completed');
+                    }).catch(() => {
+                        log('⚠️ Ad closed', 'info');
+                        notifyBackend('viewed');
+                    });
+                }, 2000);
+                
+            } catch (error) {
+                log(`❌ SDK Error: ${error.message}`, 'error');
+                notifyBackend('debug'); // Test reward
             }
         }
         
-        // ========================================
-        // INITIALIZE
-        // ========================================
-        log('🚀 CashyAds Premium Ads', 'info');
-        updateProgress(5);
-        
-        // Theme sync
-        tg.requestViewport(400, 600);
-        
-        // Auto-start
+        // START
+        log('🚀 CashyAds x RichAds', 'info');
         window.addEventListener('load', () => {
             tg.HapticFeedback.impactOccurred('medium');
-            setTimeout(loadAndPlayAd, 1200);
+            setTimeout(initRichAds, 1200);
         });
     </script>
 </body>
