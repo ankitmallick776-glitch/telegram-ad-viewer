@@ -1,82 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CashyAds Video Ads</title>
+  <title>Video Ad</title>
 </head>
 <body style="font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px;text-align:center;">
-  <h1>🎬 Premium Video Ads</h1>
-  <p>Watch 25s video → Earn ₹3-5 instantly!</p>
-  
-  <button id="showAd" style="background:#1a73e8;color:white;border:none;padding:15px 30px;border-radius:8px;font-size:18px;cursor:pointer;">▶️ Watch Video Ad</button>
-  <div id="status" style="margin:20px 0;font-weight:bold;"></div>
+  <h1>🎬 Premium Video Ad</h1>
+  <p>Watch 25s → Earn ₹3-5 instantly!</p>
+  <button id="showAd" style="background:#1a73e8;color:white;border:none;padding:15px 30px;border-radius:8px;font-size:18px;cursor:pointer;">▶️ Watch Ad</button>
+  <div id="status" style="margin:20px 0;font-weight:bold;color:#28a745;"></div>
 
-  <!-- Monetag SDK -->
   <script src="//libtl.com/sdk.js" data-zone="10214030" data-sdk="show_10214030"></script>
   
   <script>
-    // ✅ YOUR ACTUAL VPS IP AND PORT (from your .env VPS_IP and API_PORT)
-    const API_URL = 'http://103.138.96.188:8001/cashyads/ad-completed'; // ← CHANGE THIS
+    const urlParams = new URLSearchParams(window.location.search);
+    const API_URL = urlParams.get('api');
+    const userId = parseInt(urlParams.get('user_id'));
     
-    function getUserId() {
-      // ✅ Priority 1: Telegram WebApp (real user ID)
-      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-        return window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
-      }
-      // ✅ Priority 2: URL parameter (bot sends ?user_id=123)
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlUserId = urlParams.get('user_id');
-      if (urlUserId) return parseInt(urlUserId);
-      // ✅ Fallback for testing
-      return 123456789;
-    }
-
-    const userId = getUserId();
-    console.log('📱 User ID:', userId); // Check browser console
-
     document.getElementById('showAd').onclick = async () => {
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = '⏳ Loading ad...';
+      document.getElementById('status').textContent = '⏳ Loading ad...';
       
       try {
-        // ✅ Show Monetag ad
         await show_10214030();
+        document.getElementById('status').textContent = '💰 Claiming reward...';
         
-        statusEl.textContent = '🎬 Calling bot API...';
-        
-        // ✅ Call your EXACT bot endpoint
-        const response = await fetch(API_URL, {
+        const res = await fetch(API_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            result: 'video_completed'  // ✅ Matches your bot's success_results
-          })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({user_id: userId, result: 'video_completed'})
         });
         
-        const data = await response.json();
-        console.log('🤖 Bot response:', data); // Check console
-        
-        if (data.success) {
-          statusEl.innerHTML = `✅ <b>₹${data.reward} added!</b><br>Balance: ₹${data.new_balance}`;
-        } else {
-          statusEl.innerHTML = `❌ ${data.message || 'Failed'}`;
-        }
-        
-      } catch(error) {
-        console.error('❌ ERROR:', error);
-        statusEl.textContent = '❌ Network/API error - check console';
+        const data = await res.json();
+        document.getElementById('status').innerHTML = 
+          data.success ? `✅ ₹${data.reward} added! Balance: ₹${data.new_balance}` : '❌ Failed';
+      } catch(e) {
+        document.getElementById('status').textContent = '❌ Network error';
       }
     };
-
-    // ✅ Telegram WebApp init
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    }
   </script>
 </body>
 </html>
