@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashyAds - Premium Ads</title>
-    
-    <!-- Telegram Web App -->
+    <title>CashyAds - Watch Video Ad</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- ✅ RICHINFO TELEGRAM ADS SDK (YOUR CODES) -->
+    <!-- ✅ YOUR RICHINFO SDK -->
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
     
     <style>
@@ -24,127 +22,135 @@
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
         .subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 30px; }
-        .status { font-size: 18px; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 12px; backdrop-filter: blur(10px); }
-        .success { background: rgba(46,213,115,0.2); border: 2px solid #2ed573; }
+        .status { font-size: 18px; margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 12px; backdrop-filter: blur(10px); min-height: 60px; display: flex; align-items: center; justify-content: center; }
+        .success { background: rgba(46,213,115,0.3) !important; border: 2px solid #2ed573; }
+        .error { background: rgba(255,71,87,0.3) !important; border: 2px solid #ff4757; }
         .progress { width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin-top: 20px; }
         .progress-bar { height: 100%; background: linear-gradient(90deg,#2ed573,#26de81); width: 0%; transition: width 0.3s ease; }
+        .btn-ready { background: linear-gradient(45deg, #2ed573, #26de81); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 8px 25px rgba(46,213,115,0.4); margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">💎</div>
-        <div class="title" id="title">Loading Premium Ads...</div>
-        <div class="subtitle" id="subtitle">Powered by RichAds Network</div>
-        <div class="status" id="status">Initializing high-paying ads...</div>
+        <div class="logo">🎥</div>
+        <div class="title">Premium Video Ads</div>
+        <div class="subtitle">Watch 15-30s → Earn ₹3-5 Instantly</div>
+        <div class="status" id="status">Loading RichAds Video Network...</div>
         <div class="progress">
             <div class="progress-bar" id="progress"></div>
         </div>
+        <button id="watchBtn" class="btn-ready" style="display:none;">▶️ WATCH VIDEO NOW</button>
     </div>
 
     <script>
-        // CONFIG - YOUR VPS
+        // YOUR VPS ENDPOINT
         const CONFIG = {
-            API_URL: 'https://103.138.96.188:8000/cashyads/ad-completed',
-            PUB_ID: "993542",     // YOUR pubId
-            APP_ID: "4642"        // YOUR appId
+            API_URL: 'https://103.138.96.188:8000/cashyads/ad-completed',  // ← CHANGE THIS
+            PUB_ID: "993542",  // YOUR pubId
+            APP_ID: "4642"     // YOUR appId
         };
         
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand(); tg.disableVerticalSwipes();
         
-        const initData = tg.initDataUnsafe;
-        const userId = initData?.user?.id;
+        const userId = tg.initDataUnsafe?.user?.id;
         const statusEl = document.getElementById('status');
         const progressEl = document.getElementById('progress');
-        const titleEl = document.getElementById('title');
+        const watchBtn = document.getElementById('watchBtn');
         
         function log(message, type = 'info') {
-            console.log(`[${type.toUpperCase()}] ${message}`);
+            console.log(message);
             statusEl.textContent = message;
-            statusEl.classList.remove('success');
-            if (type === 'success') statusEl.classList.add('success');
+            statusEl.className = `status ${type}`;
         }
         
         function updateProgress(percent) {
-            progressEl.style.width = percent + '%';
+            progressEl.style.width = `${percent}%`;
         }
         
         async function notifyBackend(result) {
+            if (!userId) return tg.close();
+            
             try {
-                log('🔄 Processing ₹3-5 reward...', 'info');
-                updateProgress(90);
+                log('🔄 Crediting ₹3-5...', 'info');
+                updateProgress(95);
                 
-                const response = await fetch(CONFIG.API_URL, {
+                const res = await fetch(CONFIG.API_URL, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         user_id: userId,
                         result: result,
-                        network: 'richinfo',
+                        ad_network: 'richinfo_video',
                         pub_id: CONFIG.PUB_ID
                     })
                 });
                 
-                const data = await response.json();
-                titleEl.textContent = '✅ Money Added!';
-                log(`🎉 +₹${data.reward || 4}! Balance: ₹${data.new_balance || '?'}`, 'success');
+                const data = await res.json();
+                log(`✅ +₹${data.reward || 4}! Balance: ₹${data.new_balance || '?'}`, 'success');
                 updateProgress(100);
                 
                 tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => tg.close(), 3000);
-            } catch (error) {
-                log('❌ Payment error', 'error');
-                setTimeout(() => tg.close(), 4000);
+                setTimeout(() => tg.close(), 3500);
+            } catch(e) {
+                log('❌ Payment failed', 'error');
+                setTimeout(tg.close, 4000);
             }
         }
         
-        // ✅ YOUR RICHINFO SDK - PERFECT INTEGRATION
-        async function initRichAds() {
+        // ✅ OFFICIAL VIDEO AD METHOD [web:52]
+        let richadsController = null;
+        async function initRichAdsVideo() {
             try {
-                if (!userId) {
-                    log('❌ User not found', 'error');
-                    return;
-                }
+                log('🔄 Initializing RichAds...', 'info');
+                updateProgress(25);
                 
-                log('🔄 Loading RichAds...', 'info');
-                updateProgress(30);
-                
-                // YOUR SDK INITIALIZATION
-                window.TelegramAdsController = new TelegramAdsController();
-                window.TelegramAdsController.initialize({
+                // YOUR SDK
+                richadsController = new window.TelegramAdsController();
+                await richadsController.initialize({
                     pubId: CONFIG.PUB_ID,  // 993542
-                    appId: CONFIG.APP_ID   // 4642
+                    appId: CONFIG.APP_ID,  // 4642
+                    debug: true
                 });
                 
-                log('✅ RichAds initialized!', 'success');
+                log('✅ Video SDK ready!', 'success');
                 updateProgress(70);
                 
-                // Show ad after 2s
-                setTimeout(() => {
-                    titleEl.textContent = '🎬 Premium Ad Ready!';
-                    log('▶️ Showing high-paying ad...', 'info');
-                    
-                    // RichInfo shows ad automatically OR trigger manually
-                    window.TelegramAdsController.showAd().then(() => {
-                        log('✅ Ad completed!', 'success');
-                        notifyBackend('completed');
-                    }).catch(() => {
-                        log('⚠️ Ad closed', 'info');
-                        notifyBackend('viewed');
-                    });
-                }, 2000);
+                // Show VIDEO AD button
+                watchBtn.style.display = 'block';
+                watchBtn.onclick = showVideoAd;
                 
             } catch (error) {
                 log(`❌ SDK Error: ${error.message}`, 'error');
-                notifyBackend('debug'); // Test reward
+                // Fallback reward
+                setTimeout(() => notifyBackend('sdk_error'), 2000);
+            }
+        }
+        
+        // ✅ VIDEO ADS - Official method [web:52]
+        async function showVideoAd() {
+            try {
+                log('🎥 Loading VIDEO ad...', 'info');
+                updateProgress(85);
+                watchBtn.style.display = 'none';
+                
+                // OFFICIAL VIDEO AD TRIGGER
+                const result = await richadsController.triggerInterstitialVideo();
+                
+                log('✅ VIDEO ad completed!', 'success');
+                notifyBackend('video_completed');
+                
+            } catch (error) {
+                log('⚠️ Video ad closed', 'info');
+                notifyBackend('video_viewed');
             }
         }
         
         // START
-        log('🚀 CashyAds x RichAds', 'info');
+        log('🚀 RichInfo Video Ads', 'info');
         window.addEventListener('load', () => {
-            tg.HapticFeedback.impactOccurred('medium');
-            setTimeout(initRichAds, 1200);
+            tg.HapticFeedback.impactOccurred('heavy');
+            setTimeout(initRichAdsVideo, 1000);
         });
     </script>
 </body>
