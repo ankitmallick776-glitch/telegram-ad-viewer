@@ -193,20 +193,20 @@
             });
         }
        
-        // Show Monetag ad
+        // Show Monetag ad (user-triggered)
         async function showMonetagAd() {
             try {
                 const ymid = userId || 'anon';
                 statusEl.textContent = 'Loading premium ad...';
                 updateProgress(90);
                
-                // Preload (optional for better fill)
+                // Preload for better fill (from SDK examples)
                 await show_10214030({ ymid, timeout: 5 });
                
-                // Show rewarded interstitial
+                // Show rewarded interstitial on user click
                 await show_10214030().then(() => {
-                    console.log('Monetag ad completed');
-                    // Timer runs independently; success triggers reward on full time
+                    console.log('Monetag ad completed - starting timer');
+                    // Timer runs independently; reward on full time
                 });
                
                 statusEl.textContent = '✅ Ad played - Watching timer...';
@@ -225,7 +225,7 @@
             }
         }
        
-        // Start ad (user click)
+        // Start ad (user click - required for SDK)
         startAdBtn.onclick = async () => {
             startAdBtn.style.display = 'none';
             statusEl.textContent = '🎬 Playing video ad...';
