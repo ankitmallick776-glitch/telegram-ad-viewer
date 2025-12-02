@@ -3,182 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashyAds - Watch & Earn with Monetag</title>
+    <title>CashyAds - Earn by Watching Ads</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script> <!-- For success animation -->
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background: #f0f0f0; 
-            margin: 0; 
-        }
-        #status { 
-            margin: 10px 0; 
-            font-weight: bold; 
-            color: #0088cc; 
-        }
-        #ad-container { 
-            width: 100%; 
-            height: 300px; 
-            border: 1px solid #ddd; 
-            margin: 20px 0; 
-            background: #000; 
-            display: none; 
-        }
-        button { 
-            background: #0088cc; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             color: white; 
-            border: none; 
-            padding: 15px; 
-            font-size: 18px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            margin: 10px; 
+            text-align: center; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px; 
         }
-        button:disabled { 
-            background: #ccc; 
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        p { font-size: 16px; margin-bottom: 20px; opacity: 0.9; }
+        #progress { width: 80%; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; margin: 20px auto; }
+        #progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.1s; border-radius: 4px; }
+        #ad-container { width: 100%; max-width: 400px; height: 250px; background: #000; border-radius: 12px; overflow: hidden; margin: 20px 0; display: none; position: relative; }
+        #demo-video { width: 100%; height: 100%; object-fit: cover; }
+        #controls { display: flex; justify-content: space-around; margin: 20px 0; }
+        button { 
+            background: #4CAF50; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; 
+            transition: background 0.2s; min-width: 120px; 
         }
-        button:hover:not(:disabled) { 
-            background: #006699; 
-        }
-        .error { color: #ff0000; }
+        button:hover:not(:disabled) { background: #45a049; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .error { color: #ff6b6b; background: rgba(255,107,107,0.1); padding: 10px; border-radius: 8px; margin: 10px 0; }
+        #sound-toggle { background: #2196F3; font-size: 14px; padding: 8px 16px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <h2>🎬 Watch Video Ad to Earn ₹3-5</h2>
-    <p>Ad length: ~15-30s. Tap below to start—complete for full reward!</p>
-    <div id="status">Initializing Monetag SDK...</div>
-    <div id="ad-container">
-        <!-- Monetag ad will render here via SDK -->
+    <h1>🎬 Watch Ad & Earn ₹3-5</h1>
+    <p>Complete the 25s video for your reward. Sound on for better experience!</p>
+    
+    <div id="progress">
+        <div id="progress-bar"></div>
     </div>
-    <button id="start-btn">Start Watching Ad</button>
-    <button id="retry-btn" style="display:none;" class="error">Retry Ad (Failed to Load)</button>
+    
+    <div id="status">Initializing ad...</div>
+    <div id="ad-container">
+        <!-- Monetag ad or demo video renders here -->
+        <video id="demo-video" preload="auto" muted>
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4"> <!-- Free demo video; replace with your 25s clip -->
+            Your browser doesn't support video.
+        </video>
+    </div>
+    
+    <div id="controls">
+        <button id="start-btn">Start Watching</button>
+        <button id="sound-toggle" onclick="toggleSound()">🔊 Sound On</button>
+    </div>
+    
+    <button id="retry-btn" class="hidden error">Retry (Ad Failed)</button>
+    <button id="claim-btn" class="hidden">Claim Reward!</button>
     
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();  // Full screen
+        tg.ready(); tg.expand();
+        tg.MainButton.setText('Close').onClick(closeApp).hide(); // Show after claim
         
-        // Custom main button for close (after claim)
-        tg.MainButton.setText('Claim & Close').onClick(closeApp).show().setParams({ color: '#0088cc', text_color: 'white' });
-        tg.MainButton.disable();  // Enable only after completion
+        // Config
+        const ZONE_ID = '10214030'; // Your main zone
+        const MIN_VIEW_TIME = 15; // Seconds min for reward
+        const AD_DURATION = 25; // For progress
+        const DEMO_MODE = new URLSearchParams(window.location.search).get('demo') === '1'; // ?demo=1 for testing
+        let adStartTime = 0;
+        let retries = 0;
+        const MAX_RETRIES = 3;
+        let isDemo = false;
+        let video = document.getElementById('demo-video');
+        let isSoundOn = false;
         
+        // Elements
         const statusEl = document.getElementById('status');
         const adContainer = document.getElementById('ad-container');
         const startBtn = document.getElementById('start-btn');
         const retryBtn = document.getElementById('retry-btn');
+        const claimBtn = document.getElementById('claim-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const soundToggle = document.getElementById('sound-toggle');
         
-        let preloaded = false;  // Track preload status
-        const ZONE_ID = '10214030';  // Your zone
-        const ymid = tg.initDataUnsafe?.user?.id || 'test-user';  // Telegram user ID for targeting
+        // Analytics (optional: Add GA)
+        function trackEvent(action, label = '') {
+            console.log(`GA Event: ${action} - ${label}`); // Replace with gtag('event', action, { event_category: 'Ad', event_label: label });
+        }
         
-        // Load Monetag SDK dynamically
-        function loadMonetagSDK() {
-            return new Promise((resolve, reject) => {
-                if (window.show_10214030) {  // Already loaded?
-                    resolve();
-                    return;
-                }
-                const script = document.createElement('script');
-                script.src = '//libtl.com/sdk.js';
-                script.setAttribute('data-zone', ZONE_ID);
-                script.setAttribute('data-sdk', `show_${ZONE_ID}`);
-                script.onload = () => {
-                    statusEl.textContent = 'SDK loaded. Preloading ad...';
-                    resolve();
-                };
-                script.onerror = () => reject('SDK load failed - check network/console');
-                document.head.appendChild(script);
+        // Toggle sound
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            video.muted = !isSoundOn;
+            soundToggle.textContent = isSoundOn ? '🔊 Sound On' : '🔇 Sound Off';
+            soundToggle.style.background = isSoundOn ? '#2196F3' : '#f44336';
+        }
+        
+        // Update progress
+        function updateProgress(currentTime) {
+            const progress = (currentTime / AD_DURATION) * 100;
+            progressBar.style.width = Math.min(progress, 100) + '%';
+        }
+        
+        // Success animation
+        function celebrate() {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
             });
+            tg.HapticFeedback.notificationOccurred('success');
         }
         
-        // Preload ad (recommended for Rewarded Interstitial)
-        async function preloadAd() {
-            try {
-                statusEl.textContent = 'Preloading ad (background load)...';
-                await show_10214030({
-                    type: 'preload',
-                    ymid: ymid,
-                    timeout: 5  // 5s timeout
-                });
-                preloaded = true;
-                statusEl.textContent = 'Ad preloaded! Tap to watch.';
-                startBtn.disabled = false;
-                startBtn.textContent = 'Start Watching Ad';
-            } catch (error) {
-                console.error('Preload error:', error);
-                statusEl.innerHTML = `Preload failed: ${error.message || 'No inventory'}. <br>Tap to try direct show.`;
-                startBtn.disabled = false;
-                startBtn.textContent = 'Try Direct Ad';
-            }
+        // Send reward to bot
+        function claimReward() {
+            trackEvent('ad_completed');
+            tg.sendData(JSON.stringify({ result: 'video_completed' }));
+            statusEl.textContent = 'Reward claimed! Returning to bot...';
+            tg.MainButton.show();
+            celebrate();
+            setTimeout(closeApp, 1500);
         }
-        
-        // Show rewarded interstitial
-        async function showMonetagAd() {
-            try {
-                statusEl.textContent = 'Playing ad... (Do not close)';
-                adContainer.style.display = 'block';
-                startBtn.style.display = 'none';
-                retryBtn.style.display = 'none';
-                
-                // Use preloaded if available, else direct
-                const showFn = preloaded ? show_10214030({ ymid: ymid }) : show_10214030({ ymid: ymid });
-                await showFn;
-                
-                // On success (user watched full ad)
-                statusEl.textContent = 'Ad completed! Claiming reward...';
-                tg.HapticFeedback.impactOccurred('light');  // Telegram vibration
-                
-                // Send data to bot for reward
-                tg.sendData(JSON.stringify({
-                    result: 'video_completed'  // Matches your bot's success_results
-                }));
-                
-                tg.MainButton.enable();
-                startBtn.style.display = 'none';  // Hide start after success
-            } catch (error) {
-                console.error('Monetag ad error:', error);
-                statusEl.innerHTML = `<span class="error">Ad failed: ${error.message || 'Timeout/No ad available'}</span><br>Check console or retry.`;
-                retryBtn.style.display = 'block';
-                adContainer.style.display = 'none';
-                startBtn.style.display = 'block';
-                startBtn.disabled = true;  // Disable until retry
-            }
-        }
-        
-        // Init on load
-        async function init() {
-            try {
-                await loadMonetagSDK();
-                await preloadAd();  // Preload first
-            } catch (error) {
-                statusEl.innerHTML = `<span class="error">Init failed: ${error}</span><br>Contact support.`;
-                retryBtn.style.display = 'block';
-                startBtn.style.display = 'none';
-            }
-        }
-        
-        // Start button (user interaction)
-        startBtn.onclick = () => {
-            showMonetagAd();
-        };
-        
-        // Retry button
-        retryBtn.onclick = () => {
-            retryBtn.style.display = 'none';
-            statusEl.textContent = 'Retrying...';
-            preloaded = false;  // Reset
-            showMonetagAd();  // Direct try
-        };
         
         // Close app
         function closeApp() {
             tg.close();
         }
         
-        // Start
-        init();
+        // Load Monetag SDK
+        async function loadMonetag() {
+            return new Promise((resolve, reject) => {
+                if (window.createAdHandler) return resolve(); // Already loaded
+                const script = document.createElement('script');
+                script.src = '//libtl.com/sdk.js';
+                script.setAttribute('data-zone', ZONE_ID);
+                script.setAttribute('data-sdk', `show_${ZONE_ID}`);
+                script.onload = () => {
+                    // Create handler per SDK example
+                    window.monetagHandler = createAdHandler(ZONE_ID);
+                    resolve();
+                };
+                script.onerror = () => reject('SDK load failed');
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Show Monetag ad
+        async function showMonetagAd() {
+            try {
+                statusEl.textContent = 'Loading premium ad...';
+                const ymid = tg.initDataUnsafe?.user?.id || 'anon';
+                
+                // Preload first
+                await window.monetagHandler({ type: 'preload', ymid, timeout: 5 });
+                
+                // Then show
+                await window.monetagHandler({ ymid });
+                
+                // If reached here, ad completed
+                if (Date.now() - adStartTime >= MIN_VIEW_TIME * 1000) {
+                    claimReward();
+                } else {
+                    statusEl.classList.add('error');
+                    statusEl.textContent = `Watch full ${MIN_VIEW_TIME}s for reward!`;
+                }
+            } catch (error) {
+                console.error('Monetag error:', error);
+                trackEvent('ad_failed', 'Monetag');
+                fallbackToDemo();
+            }
+        }
+        
+        // Fallback to demo video
+        function fallbackToDemo() {
+            isDemo = true;
+            retries++;
+            statusEl.textContent = `Premium ad unavailable (try ${MAX_RETRIES - retries + 1}/3). Using demo.`;
+            adContainer.style.display = 'block';
+            video.style.display = 'block';
+            video.currentTime = 0;
+            video.play();
+            adStartTime = Date.now();
+            trackEvent('ad_fallback', 'Demo');
+            
+            // Video events
+            video.ontimeupdate = () => updateProgress(video.currentTime);
+            video.onended = () => {
+                if (video.currentTime >= MIN_VIEW_TIME) {
+                    claimReward();
+                } else {
+                    statusEl.classList.add('error');
+                    statusEl.textContent = 'Watch full video!';
+                }
+            };
+            video.onerror = () => {
+                statusEl.classList.add('error');
+                statusEl.textContent = 'Video error—retry?';
+                retryBtn.classList.remove('hidden');
+            };
+        }
+        
+        // Start ad (user click)
+        startBtn.onclick = async () => {
+            trackEvent('ad_started');
+            startBtn.disabled = true;
+            startBtn.classList.add('hidden');
+            soundToggle.classList.add('hidden');
+            adContainer.style.display = 'block';
+            adStartTime = Date.now();
+            
+            if (DEMO_MODE || retries > 0) {
+                fallbackToDemo();
+            } else {
+                try {
+                    await loadMonetag();
+                    await showMonetagAd();
+                } catch (error) {
+                    fallbackToDemo();
+                }
+            }
+        };
+        
+        // Retry
+        retryBtn.onclick = () => {
+            if (retries >= MAX_RETRIES) {
+                statusEl.textContent = 'Max retries—contact support.';
+                return;
+            }
+            retryBtn.classList.add('hidden');
+            startBtn.disabled = false;
+            startBtn.classList.remove('hidden');
+            startBtn.textContent = 'Retry Ad';
+            retries = 0; // Reset for retry
+        };
+        
+        // Claim (for demo)
+        claimBtn.onclick = claimReward;
+        
+        // Init
+        statusEl.textContent = DEMO_MODE ? 'Demo mode active—watch video!' : 'Ready to earn? Tap Start!';
+        startBtn.disabled = false;
+        trackEvent('mini_app_loaded');
+        
+        // Keyboard close
+        tg.onEvent('mainButtonClicked', closeApp);
     </script>
 </body>
 </html>
