@@ -4,52 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CashyAds Video Ads</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 400px; margin: 40px auto; padding: 20px; text-align: center; }
-    button { background: #1a73e8; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    #status { margin: 20px 0; font-weight: bold; }
-  </style>
 </head>
-<body>
+<body style="font-family:Arial,sans-serif;max-width:400px;margin:40px auto;padding:20px;text-align:center;">
   <h1>🎬 Premium Video Ads</h1>
   <p>Watch 25s video → Earn ₹3-5 instantly!</p>
   
-  <button id="showAd">▶️ Watch Video Ad</button>
-  <div id="status"></div>
+  <button id="showAd" style="background:#1a73e8;color:white;border:none;padding:15px 30px;border-radius:8px;font-size:18px;cursor:pointer;">▶️ Watch Video Ad</button>
+  <div id="status" style="margin:20px 0;font-weight:bold;"></div>
 
   <!-- Monetag SDK -->
   <script src="//libtl.com/sdk.js" data-zone="10214030" data-sdk="show_10214030"></script>
   
   <script>
-    // YOUR VPS API URL - UPDATE THIS
-    const API_URL = 'http://103.138.96.188:8001/cashyads/ad-completed';
+    // ✅ YOUR ACTUAL VPS IP AND PORT (from your .env VPS_IP and API_PORT)
+    const API_URL = 'http://103.138.96.188:8001/cashyads/ad-completed'; // ← CHANGE THIS
     
-    // Get Telegram user ID from WebApp
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 123456789;
-    
+    function getUserId() {
+      // ✅ Priority 1: Telegram WebApp (real user ID)
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+        return window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+      }
+      // ✅ Priority 2: URL parameter (bot sends ?user_id=123)
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlUserId = urlParams.get('user_id');
+      if (urlUserId) return parseInt(urlUserId);
+      // ✅ Fallback for testing
+      return 123456789;
+    }
+
+    const userId = getUserId();
+    console.log('📱 User ID:', userId); // Check browser console
+
     document.getElementById('showAd').onclick = async () => {
-      document.getElementById('status').textContent = 'Loading ad...';
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '⏳ Loading ad...';
       
       try {
-        // Show Monetag rewarded ad
+        // ✅ Show Monetag ad
         await show_10214030();
         
-        // Call your bot backend after ad completion
+        statusEl.textContent = '🎬 Calling bot API...';
+        
+        // ✅ Call your EXACT bot endpoint
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({user_id: userId, result: 'video_completed'})
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            result: 'video_completed'  // ✅ Matches your bot's success_results
+          })
         });
         
         const data = await response.json();
-        document.getElementById('status').textContent = 
-          data.success ? `✅ ₹${data.reward} credited! Balance: ₹${data.new_balance}` : '❌ Reward failed';
-          
-      } catch(e) {
-        document.getElementById('status').textContent = '❌ Ad failed';
+        console.log('🤖 Bot response:', data); // Check console
+        
+        if (data.success) {
+          statusEl.innerHTML = `✅ <b>₹${data.reward} added!</b><br>Balance: ₹${data.new_balance}`;
+        } else {
+          statusEl.innerHTML = `❌ ${data.message || 'Failed'}`;
+        }
+        
+      } catch(error) {
+        console.error('❌ ERROR:', error);
+        statusEl.textContent = '❌ Network/API error - check console';
       }
     };
+
+    // ✅ Telegram WebApp init
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
   </script>
 </body>
 </html>
