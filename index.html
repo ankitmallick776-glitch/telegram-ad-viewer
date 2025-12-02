@@ -42,6 +42,11 @@
         .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .progress-bar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin: 20px 0; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #2ed573, #26de81); width: 0%; transition: width 0.3s ease; }
+        .debug-log { 
+            font-size: 12px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; 
+            margin-top: 15px; text-align: left; max-height: 100px; overflow-y: auto; 
+            color: #ffff00; font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -66,21 +71,30 @@
         <div id="rewardScreen" style="display:none;">
             <div class="status success" id="rewardStatus">✅ FULL VIDEO COMPLETED!</div>
             <div class="title">₹4 Reward Credited!</div>
+            <div class="status success" style="margin-top: 10px;" id="rewardMessage">Processing...</div>
         </div>
+
+        <div class="debug-log" id="debugLog" style="display:none;"></div>
     </div>
 
     <script>
         const CONFIG = {
-            API_URL: 'https://103.138.96.188:8001/cashyads/ad-completed',  // ← YOUR VPS IP
+            API_URL: 'http://103.138.96.188:8001/cashyads/ad-completed',  // ← HTTP NOT HTTPS (FIX #1)
             REQUIRED_TIME: 20,  // 20 seconds minimum
             PUB_ID: "993542",
-            APP_ID: "4642"
+            APP_ID: "4642",
+            DEBUG: true  // Enable debug mode
         };
         
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand(); tg.disableVerticalSwipes();
+        tg.ready(); 
+        tg.expand(); 
+        tg.disableVerticalSwipes();
         
+        // ✅ FIX: Better user ID extraction
+        const initData = tg.initData;
         const userId = tg.initDataUnsafe?.user?.id;
+        
         let timerInterval = null;
         let secondsWatched = 0;
         let isWatching = false;
@@ -93,6 +107,18 @@
         const progressEl = document.getElementById('progress');
         const timerEl = document.getElementById('timer');
         const startAdBtn = document.getElementById('startAdBtn');
+        const debugLog = document.getElementById('debugLog');
+        
+        // ✅ FIX: Debug logging
+        function log(msg) {
+            console.log(msg);
+            if (CONFIG.DEBUG) {
+                const time = new Date().toLocaleTimeString();
+                debugLog.style.display = 'block';
+                debugLog.innerHTML += `[${time}] ${msg}<br>`;
+                debugLog.scrollTop = debugLog.scrollHeight;
+            }
+        }
         
         function updateProgress(percent) {
             progressEl.style.width = `${percent}%`;
@@ -111,36 +137,71 @@
         function showRewardScreen() {
             adScreen.style.display = 'none';
             rewardScreen.style.display = 'block';
+            log(`✅ Video completed. Sending reward to backend...`);
             notifyBackend('full_video_complete');
         }
         
+        // ✅ FIX #2: Better error handling in API call
         async function notifyBackend(result) {
             try {
+                log(`📤 Sending request to ${CONFIG.API_URL}`);
+                log(`User ID: ${userId}, Result: ${result}`);
+                
+                if (!userId) {
+                    throw new Error("❌ User ID not found in Telegram Web App");
+                }
+                
+                const payload = {
+                    user_id: userId,
+                    result: result,
+                    watch_time: secondsWatched,
+                    required_time: CONFIG.REQUIRED_TIME,
+                    network: 'richinfo_single_video',
+                    init_data: initData  // Send raw init data for verification
+                };
+                
+                log(`📦 Payload: ${JSON.stringify(payload)}`);
+                
                 const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        result: result,
-                        watch_time: secondsWatched,
-                        required_time: CONFIG.REQUIRED_TIME,
-                        network: 'richinfo_single_video'
-                    })
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
                 });
                 
+                log(`📥 Response Status: ${response.status}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
-                console.log('✅ Reward confirmed:', data);
-                tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => tg.close(), 4000);
+                log(`✅ Backend Response: ${JSON.stringify(data)}`);
+                
+                if (data.success) {
+                    document.getElementById('rewardMessage').textContent = 
+                        `✅ Reward: ₹${data.reward} | New Balance: ₹${data.new_balance}`;
+                    tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => tg.close(), 4000);
+                } else {
+                    throw new Error(data.message || "Backend returned error");
+                }
+                
             } catch(e) {
-                console.error('Reward error:', e);
+                log(`❌ ERROR: ${e.message}`);
+                document.getElementById('rewardMessage').textContent = `❌ Error: ${e.message}`;
+                document.getElementById('rewardMessage').className = 'status error';
+                tg.HapticFeedback.notificationOccurred('error');
                 setTimeout(tg.close, 5000);
             }
         }
         
-        // ✅ NO AUTO ADS - MANUAL CONTROL ONLY
+        // ✅ FIX #3: NO AUTO ADS - MANUAL CONTROL ONLY
         async function initSingleVideoAd() {
             try {
+                log(`🎬 Initializing TelegramAdsController...`);
                 statusEl.textContent = '✅ Video network ready';
                 updateProgress(100);
                 
@@ -149,10 +210,11 @@
                 await window.TelegramAdsController.initialize({
                     pubId: CONFIG.PUB_ID,
                     appId: CONFIG.APP_ID,
-                    // NO AUTO ADS - Manual only
                     autoShow: false,
                     debug: true
                 });
+                
+                log(`✅ TelegramAdsController initialized successfully`);
                 
                 loadingScreen.style.display = 'none';
                 adScreen.style.display = 'block';
@@ -160,6 +222,7 @@
                 startAdBtn.textContent = '▶️ PLAY VIDEO AD (25s)';
                 
             } catch(error) {
+                log(`⚠️ TelegramAdsController failed: ${error.message}`);
                 statusEl.textContent = '⚠️ Using test mode';
                 updateProgress(100);
                 setTimeout(() => {
@@ -174,6 +237,7 @@
         // ✅ SINGLE VIDEO + STRICT TIMER
         startAdBtn.onclick = async () => {
             try {
+                log(`▶️ User clicked Play button`);
                 startAdBtn.style.display = 'none';
                 statusEl.textContent = '🎬 Playing video ad...';
                 statusEl.className = 'status warning';
@@ -181,18 +245,26 @@
                 secondsWatched = 0;
                 isWatching = true;
                 
+                log(`🎥 Triggering interstitial video...`);
+                
                 // PLAY ONE VIDEO ONLY
                 const adResult = await window.TelegramAdsController.triggerInterstitialVideo();
+                
+                log(`📺 Video started. Starting 25s timer...`);
                 
                 // STRICT 25s TIMER STARTS
                 timerInterval = setInterval(() => {
                     secondsWatched++;
                     updateTimer();
+                    if (secondsWatched % 5 === 0) {
+                        log(`⏱️ ${secondsWatched}s watched`);
+                    }
                 }, 1000);
                 
                 // ANTI-TAB-SWITCH
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden && secondsWatched < CONFIG.REQUIRED_TIME - 3) {
+                        log(`❌ User switched tabs at ${secondsWatched}s - No reward`);
                         clearInterval(timerInterval);
                         statusEl.textContent = '❌ Tab switched early - No reward';
                         statusEl.className = 'status error';
@@ -203,6 +275,7 @@
                 // FAILSAFE - Max 35s
                 setTimeout(() => {
                     if (secondsWatched < CONFIG.REQUIRED_TIME) {
+                        log(`⏰ Max time expired at ${secondsWatched}s`);
                         clearInterval(timerInterval);
                         statusEl.textContent = '⏰ Time expired - No reward';
                         setTimeout(() => tg.close(), 2000);
@@ -210,6 +283,7 @@
                 }, 35000);
                 
             } catch(error) {
+                log(`❌ Video error: ${error.message} - Running test timer`);
                 // VIDEO FAILED - Still run timer for test
                 statusEl.textContent = '🎬 Test video simulation...';
                 timerInterval = setInterval(() => {
@@ -221,6 +295,7 @@
         
         // START
         window.addEventListener('load', () => {
+            log(`🚀 App loaded. User ID: ${userId}`);
             tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(initSingleVideoAd, 1500);
         });
