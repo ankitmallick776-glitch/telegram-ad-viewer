@@ -1,304 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashyAds - Single Video Ad</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CashyAds - Watch Ads & Earn</title>
+  <meta name="description" content="Watch premium video ads and earn instant cash rewards!">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center; 
-            min-height: 100vh; color: white; padding: 20px; text-align: center;
-        }
-        .container { max-width: 400px; width: 100%; }
-        .logo { font-size: 64px; margin-bottom: 15px; }
-        .title { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
-        .subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 25px; }
-        .status { 
-            font-size: 18px; padding: 15px 25px; background: rgba(255,255,255,0.15); 
-            border-radius: 15px; margin: 15px 0; min-height: 65px; display: flex; 
-            align-items: center; justify-content: center; font-weight: 500;
-        }
-        .success { background: rgba(46,213,115,0.4) !important; border: 2px solid #2ed573; }
-        .warning { background: rgba(255,193,7,0.4) !important; border: 2px solid #f1c40f; }
-        .error { background: rgba(255,71,87,0.4) !important; border: 2px solid #ff4757; }
-        .timer { 
-            font-size: 36px; font-weight: bold; color: #2ed573; margin: 20px 0;
-            background: rgba(46,213,115,0.3); padding: 20px; border-radius: 25px;
-            box-shadow: 0 8px 25px rgba(46,213,115,0.3);
-        }
-        .btn-start { 
-            background: linear-gradient(45deg, #2ed573, #26de81); color: white; 
-            border: none; padding: 18px 45px; border-radius: 30px; font-size: 20px; 
-            font-weight: bold; cursor: pointer; box-shadow: 0 12px 35px rgba(46,213,115,0.5);
-            margin: 25px 0; transition: all 0.3s ease;
-        }
-        .btn-start:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(46,213,115,0.6); }
-        .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .progress-bar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin: 20px 0; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #2ed573, #26de81); width: 0%; transition: width 0.3s ease; }
-        .debug-log { 
-            font-size: 12px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; 
-            margin-top: 15px; text-align: left; max-height: 100px; overflow-y: auto; 
-            color: #ffff00; font-family: monospace;
-        }
-    </style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 400px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .logo {
+      font-size: 2.2em;
+      font-weight: bold;
+      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    
+    .balance-card {
+      background: linear-gradient(45deg, #ff9a9e, #fecfef);
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+      color: #333;
+    }
+    
+    .balance-amount {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #d63384;
+      margin-bottom: 5px;
+    }
+    
+    .balance-label {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    
+    .watch-ad-btn {
+      background: linear-gradient(45deg, #ff6b6b, #feca57);
+      color: white;
+      border: none;
+      padding: 18px 40px;
+      border-radius: 50px;
+      font-size: 1.3em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 20px 0;
+      box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+      width: 100%;
+    }
+    
+    .watch-ad-btn:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
+    }
+    
+    .watch-ad-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .claim-btn {
+      background: linear-gradient(45deg, #4ecdc4, #44a08d);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 15px 0;
+      box-shadow: 0 8px 25px rgba(78, 205, 196, 0.4);
+      width: 100%;
+    }
+    
+    .claim-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(78, 205, 196, 0.6);
+    }
+    
+    .claim-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .message {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 10px;
+      font-weight: 500;
+      min-height: 20px;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .message.loading {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      font-size: 0.9em;
+    }
+    
+    .stat {
+      text-align: center;
+      padding: 10px;
+    }
+    
+    .stat-number {
+      font-weight: bold;
+      font-size: 1.2em;
+      color: #1a73e8;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 480px) {
+      .container {
+        margin: 10px;
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">🎥</div>
-        <div class="title" id="title">Watch ONE Video Ad</div>
-        <div class="subtitle">Complete 25s → Get ₹3-5 Guaranteed</div>
-        
-        <div id="loadingScreen">
-            <div class="status" id="status">Initializing video ad network...</div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress"></div>
-            </div>
-        </div>
-        
-        <div id="adScreen" style="display:none;">
-            <div class="status warning" id="instruction">🔒 STAY ON SCREEN - Full 25s required!</div>
-            <div class="timer" id="timer">25s</div>
-            <button id="startAdBtn" class="btn-start" disabled>⏳ Video Loading...</button>
-        </div>
-        
-        <div id="rewardScreen" style="display:none;">
-            <div class="status success" id="rewardStatus">✅ FULL VIDEO COMPLETED!</div>
-            <div class="title">₹4 Reward Credited!</div>
-            <div class="status success" style="margin-top: 10px;" id="rewardMessage">Processing...</div>
-        </div>
-
-        <div class="debug-log" id="debugLog" style="display:none;"></div>
+  <div class="container">
+    <div class="logo">💰 CashyAds</div>
+    <div class="subtitle">Watch premium video ads & earn instant rewards!</div>
+    
+    <div class="balance-card">
+      <div class="balance-amount" id="balance">₹0.00</div>
+      <div class="balance-label">Available Balance</div>
     </div>
+    
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-number" id="adsWatched">0</div>
+        <span>Ads Watched</span>
+      </div>
+      <div class="stat">
+        <div class="stat-number" id="totalEarnings">₹0.00</div>
+        <span>Total Earned</span>
+      </div>
+    </div>
+    
+    <button class="watch-ad-btn" id="watchAdBtn">
+      ▶️ Watch Video Ad (25s)
+    </button>
+    
+    <button class="claim-btn" id="claimRewardBtn" disabled>
+      💎 Claim Reward (₹3-5)
+    </button>
+    
+    <div id="message"></div>
+  </div>
 
-    <script>
-        const CONFIG = {
-            API_URL: 'http://103.138.96.188:8001/cashyads/ad-completed',  // ← HTTP NOT HTTPS (FIX #1)
-            REQUIRED_TIME: 20,  // 20 seconds minimum
-            PUB_ID: "993542",
-            APP_ID: "4642",
-            DEBUG: true  // Enable debug mode
-        };
-        
-        const tg = window.Telegram.WebApp;
-        tg.ready(); 
-        tg.expand(); 
-        tg.disableVerticalSwipes();
-        
-        // ✅ FIX: Better user ID extraction
-        const initData = tg.initData;
-        const userId = tg.initDataUnsafe?.user?.id;
-        
-        let timerInterval = null;
-        let secondsWatched = 0;
-        let isWatching = false;
-        
-        // DOM
-        const loadingScreen = document.getElementById('loadingScreen');
-        const adScreen = document.getElementById('adScreen');
-        const rewardScreen = document.getElementById('rewardScreen');
-        const statusEl = document.getElementById('status');
-        const progressEl = document.getElementById('progress');
-        const timerEl = document.getElementById('timer');
-        const startAdBtn = document.getElementById('startAdBtn');
-        const debugLog = document.getElementById('debugLog');
-        
-        // ✅ FIX: Debug logging
-        function log(msg) {
-            console.log(msg);
-            if (CONFIG.DEBUG) {
-                const time = new Date().toLocaleTimeString();
-                debugLog.style.display = 'block';
-                debugLog.innerHTML += `[${time}] ${msg}<br>`;
-                debugLog.scrollTop = debugLog.scrollHeight;
-            }
-        }
-        
-        function updateProgress(percent) {
-            progressEl.style.width = `${percent}%`;
-        }
-        
-        function updateTimer() {
-            const remaining = CONFIG.REQUIRED_TIME - secondsWatched;
-            timerEl.textContent = `${Math.max(0, remaining)}s`;
-            
-            if (secondsWatched >= CONFIG.REQUIRED_TIME) {
-                clearInterval(timerInterval);
-                showRewardScreen();
-            }
-        }
-        
-        function showRewardScreen() {
-            adScreen.style.display = 'none';
-            rewardScreen.style.display = 'block';
-            log(`✅ Video completed. Sending reward to backend...`);
-            notifyBackend('full_video_complete');
-        }
-        
-        // ✅ FIX #2: Better error handling in API call
-        async function notifyBackend(result) {
-            try {
-                log(`📤 Sending request to ${CONFIG.API_URL}`);
-                log(`User ID: ${userId}, Result: ${result}`);
-                
-                if (!userId) {
-                    throw new Error("❌ User ID not found in Telegram Web App");
-                }
-                
-                const payload = {
-                    user_id: userId,
-                    result: result,
-                    watch_time: secondsWatched,
-                    required_time: CONFIG.REQUIRED_TIME,
-                    network: 'richinfo_single_video',
-                    init_data: initData  // Send raw init data for verification
-                };
-                
-                log(`📦 Payload: ${JSON.stringify(payload)}`);
-                
-                const response = await fetch(CONFIG.API_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                log(`📥 Response Status: ${response.status}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                log(`✅ Backend Response: ${JSON.stringify(data)}`);
-                
-                if (data.success) {
-                    document.getElementById('rewardMessage').textContent = 
-                        `✅ Reward: ₹${data.reward} | New Balance: ₹${data.new_balance}`;
-                    tg.HapticFeedback.notificationOccurred('success');
-                    setTimeout(() => tg.close(), 4000);
-                } else {
-                    throw new Error(data.message || "Backend returned error");
-                }
-                
-            } catch(e) {
-                log(`❌ ERROR: ${e.message}`);
-                document.getElementById('rewardMessage').textContent = `❌ Error: ${e.message}`;
-                document.getElementById('rewardMessage').className = 'status error';
-                tg.HapticFeedback.notificationOccurred('error');
-                setTimeout(tg.close, 5000);
-            }
-        }
-        
-        // ✅ FIX #3: NO AUTO ADS - MANUAL CONTROL ONLY
-        async function initSingleVideoAd() {
-            try {
-                log(`🎬 Initializing TelegramAdsController...`);
-                statusEl.textContent = '✅ Video network ready';
-                updateProgress(100);
-                
-                // Initialize WITHOUT auto ads
-                window.TelegramAdsController = new TelegramAdsController();
-                await window.TelegramAdsController.initialize({
-                    pubId: CONFIG.PUB_ID,
-                    appId: CONFIG.APP_ID,
-                    autoShow: false,
-                    debug: true
-                });
-                
-                log(`✅ TelegramAdsController initialized successfully`);
-                
-                loadingScreen.style.display = 'none';
-                adScreen.style.display = 'block';
-                startAdBtn.disabled = false;
-                startAdBtn.textContent = '▶️ PLAY VIDEO AD (25s)';
-                
-            } catch(error) {
-                log(`⚠️ TelegramAdsController failed: ${error.message}`);
-                statusEl.textContent = '⚠️ Using test mode';
-                updateProgress(100);
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    adScreen.style.display = 'block';
-                    startAdBtn.disabled = false;
-                    startAdBtn.textContent = '🎁 GET TEST REWARD (25s)';
-                }, 2000);
-            }
-        }
-        
-        // ✅ SINGLE VIDEO + STRICT TIMER
-        startAdBtn.onclick = async () => {
-            try {
-                log(`▶️ User clicked Play button`);
-                startAdBtn.style.display = 'none';
-                statusEl.textContent = '🎬 Playing video ad...';
-                statusEl.className = 'status warning';
-                
-                secondsWatched = 0;
-                isWatching = true;
-                
-                log(`🎥 Triggering interstitial video...`);
-                
-                // PLAY ONE VIDEO ONLY
-                const adResult = await window.TelegramAdsController.triggerInterstitialVideo();
-                
-                log(`📺 Video started. Starting 25s timer...`);
-                
-                // STRICT 25s TIMER STARTS
-                timerInterval = setInterval(() => {
-                    secondsWatched++;
-                    updateTimer();
-                    if (secondsWatched % 5 === 0) {
-                        log(`⏱️ ${secondsWatched}s watched`);
-                    }
-                }, 1000);
-                
-                // ANTI-TAB-SWITCH
-                document.addEventListener('visibilitychange', () => {
-                    if (document.hidden && secondsWatched < CONFIG.REQUIRED_TIME - 3) {
-                        log(`❌ User switched tabs at ${secondsWatched}s - No reward`);
-                        clearInterval(timerInterval);
-                        statusEl.textContent = '❌ Tab switched early - No reward';
-                        statusEl.className = 'status error';
-                        setTimeout(() => tg.close(), 2500);
-                    }
-                }, { once: true });
-                
-                // FAILSAFE - Max 35s
-                setTimeout(() => {
-                    if (secondsWatched < CONFIG.REQUIRED_TIME) {
-                        log(`⏰ Max time expired at ${secondsWatched}s`);
-                        clearInterval(timerInterval);
-                        statusEl.textContent = '⏰ Time expired - No reward';
-                        setTimeout(() => tg.close(), 2000);
-                    }
-                }, 35000);
-                
-            } catch(error) {
-                log(`❌ Video error: ${error.message} - Running test timer`);
-                // VIDEO FAILED - Still run timer for test
-                statusEl.textContent = '🎬 Test video simulation...';
-                timerInterval = setInterval(() => {
-                    secondsWatched++;
-                    updateTimer();
-                }, 1000);
-            }
-        };
-        
-        // START
-        window.addEventListener('load', () => {
-            log(`🚀 App loaded. User ID: ${userId}`);
-            tg.HapticFeedback.impactOccurred('heavy');
-            setTimeout(initSingleVideoAd, 1500);
+  <!-- Monetag SDK -->
+  <script src="//libtl.com/sdk.js" data-zone="10214030" data-sdk="show_10214030"></script>
+  
+  <script>
+    // Configuration - UPDATE THESE URLs
+    const CONFIG = {
+      apiBaseUrl: 'http://103.138.96.188:8001', // Replace with your VPS IP:PORT
+      // OR use your domain: 'https://yourdomain.com'
+    };
+
+    // Get Telegram user ID from initData (passed by Telegram Mini App)
+    function getTelegramUserId() {
+      try {
+        // Telegram passes user data via initData
+        const initData = new URLSearchParams(window.Telegram?.WebApp?.initData || '');
+        const userData = JSON.parse(atob(initData.get('user') || '{}'));
+        return userData?.id || null;
+      } catch {
+        // Fallback: you can set manually for testing
+        return null; // Will use demo mode
+      }
+    }
+
+    const watchAdBtn = document.getElementById('watchAdBtn');
+    const claimRewardBtn = document.getElementById('claimRewardBtn');
+    const balanceEl = document.getElementById('balance');
+    const adsWatchedEl = document.getElementById('adsWatched');
+    const totalEarningsEl = document.getElementById('totalEarnings');
+    const messageEl = document.getElementById('message');
+
+    let currentUserId = getTelegramUserId();
+    let adRewardEarned = 0;
+    let isAdWatched = false;
+
+    // Demo mode if no Telegram user ID
+    if (!currentUserId) {
+      currentUserId = 123456789; // Demo user ID
+      console.log('Demo mode - using user ID:', currentUserId);
+    }
+
+    function showMessage(text, type = 'loading') {
+      messageEl.textContent = text;
+      messageEl.className = `message ${type}`;
+    }
+
+    function updateUI(data) {
+      if (data.success) {
+        balanceEl.textContent = `₹${data.new_balance.toFixed(2)}`;
+        adRewardEarned = data.reward;
+        isAdWatched = true;
+        claimRewardBtn.disabled = false;
+        showMessage(`🎉 Ready to claim ₹${data.reward}!`, 'success');
+      }
+    }
+
+    // Watch Ad Button
+    watchAdBtn.addEventListener('click', async () => {
+      watchAdBtn.disabled = true;
+      showMessage('Loading premium ad...', 'loading');
+
+      try {
+        // Show Monetag rewarded video ad
+        await show_10214030();
+
+        // Ad completed successfully!
+        showMessage('✅ Ad watched successfully! Click claim reward.', 'success');
+        claimRewardBtn.disabled = false;
+        isAdWatched = true;
+
+      } catch (error) {
+        console.error('Ad error:', error);
+        showMessage('❌ Failed to load ad. Please try again.', 'error');
+      } finally {
+        watchAdBtn.disabled = false;
+        watchAdBtn.textContent = '▶️ Watch Another Ad (25s)';
+      }
+    });
+
+    // Claim Reward Button
+    claimRewardBtn.addEventListener('click', async () => {
+      if (!isAdWatched) {
+        showMessage('⚠️ Please watch ad first!', 'error');
+        return;
+      }
+
+      claimRewardBtn.disabled = true;
+      showMessage('🔄 Claiming your reward...', 'loading');
+
+      try {
+        const response = await fetch(`${CONFIG.apiBaseUrl}/cashyads/ad-completed`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ 
+            user_id: currentUserId, 
+            result: 'video_completed' 
+          })
         });
-    </script>
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Update all UI elements
+          balanceEl.textContent = `₹${data.new_balance.toFixed(2)}`;
+          
+          // Simulate fetching updated stats (you can add real API call)
+          adsWatchedEl.textContent = parseInt(adsWatchedEl.textContent) + 1;
+          
+          showMessage(`🎉 ₹${data.reward} credited successfully!`, 'success');
+          
+          // Reset for next ad
+          isAdWatched = false;
+          setTimeout(() => {
+            claimRewardBtn.disabled = true;
+            showMessage('');
+          }, 3000);
+
+        } else {
+          showMessage(`❌ ${data.message || 'Claim failed'}`, 'error');
+        }
+      } catch (error) {
+        console.error('Claim error:', error);
+        showMessage('❌ Network error. Check your connection.', 'error');
+      } finally {
+        claimRewardBtn.disabled = false;
+      }
+    });
+
+    // Initialize Telegram WebApp (optional)
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+
+    // Load initial balance (optional)
+    console.log('CashyAds Mini App loaded. User ID:', currentUserId);
+  </script>
 </body>
 </html>
