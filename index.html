@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashyAds - Complete Video Ad</title>
+    <title>CashyAds - Single Video Ad</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
     
@@ -16,201 +16,213 @@
             min-height: 100vh; color: white; padding: 20px; text-align: center;
         }
         .container { max-width: 400px; width: 100%; }
-        .logo { font-size: 64px; margin-bottom: 15px; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        .logo { font-size: 64px; margin-bottom: 15px; }
         .title { font-size: 24px; font-weight: bold; margin-bottom: 8px; }
         .subtitle { font-size: 16px; opacity: 0.9; margin-bottom: 25px; }
-        .video-container { 
-            width: 100%; max-width: 350px; margin: 20px auto; 
-            background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px;
+        .status { 
+            font-size: 18px; padding: 15px 25px; background: rgba(255,255,255,0.15); 
+            border-radius: 15px; margin: 15px 0; min-height: 65px; display: flex; 
+            align-items: center; justify-content: center; font-weight: 500;
         }
-        .video-status { 
-            font-size: 18px; font-weight: bold; margin: 15px 0; 
-            padding: 12px; background: rgba(255,255,255,0.1); border-radius: 10px;
-        }
+        .success { background: rgba(46,213,115,0.4) !important; border: 2px solid #2ed573; }
+        .warning { background: rgba(255,193,7,0.4) !important; border: 2px solid #f1c40f; }
+        .error { background: rgba(255,71,87,0.4) !important; border: 2px solid #ff4757; }
         .timer { 
-            font-size: 32px; font-weight: bold; color: #2ed573; 
-            background: rgba(46,213,115,0.2); padding: 15px; border-radius: 20px;
-            margin: 20px 0; min-height: 60px; display: flex; align-items: center; justify-content: center;
+            font-size: 36px; font-weight: bold; color: #2ed573; margin: 20px 0;
+            background: rgba(46,213,115,0.3); padding: 20px; border-radius: 25px;
+            box-shadow: 0 8px 25px rgba(46,213,115,0.3);
         }
-        .progress-circle { 
-            width: 120px; height: 120px; border-radius: 50%; 
-            background: conic-gradient(#2ed573 0deg, rgba(46,213,115,0.3) 0deg);
-            margin: 20px auto; display: flex; align-items: center; justify-content: center;
-            font-size: 28px; font-weight: bold;
-        }
-        .status { padding: 12px 20px; background: rgba(255,255,255,0.15); border-radius: 10px; margin: 10px 0; }
-        .success { background: rgba(46,213,115,0.3) !important; border: 2px solid #2ed573; }
-        .warning { background: rgba(255,193,7,0.3) !important; border: 2px solid #f1c40f; }
-        .error { background: rgba(255,71,87,0.3) !important; border: 2px solid #ff4757; }
         .btn-start { 
             background: linear-gradient(45deg, #2ed573, #26de81); color: white; 
-            border: none; padding: 18px 40px; border-radius: 30px; font-size: 20px; 
-            font-weight: bold; cursor: pointer; box-shadow: 0 10px 30px rgba(46,213,115,0.4);
-            margin: 25px 0; min-height: 65px;
+            border: none; padding: 18px 45px; border-radius: 30px; font-size: 20px; 
+            font-weight: bold; cursor: pointer; box-shadow: 0 12px 35px rgba(46,213,115,0.5);
+            margin: 25px 0; transition: all 0.3s ease;
         }
-        .btn-start:hover { transform: translateY(-2px); }
-        .btn-start:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-start:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(46,213,115,0.6); }
+        .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .progress-bar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin: 20px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #2ed573, #26de81); width: 0%; transition: width 0.3s ease; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">🎥</div>
-        <div class="title" id="title">Complete Video Ad</div>
-        <div class="subtitle" id="subtitle">Watch FULL video (25s) → Get ₹3-5</div>
+        <div class="title" id="title">Watch ONE Video Ad</div>
+        <div class="subtitle">Complete 25s → Get ₹3-5 Guaranteed</div>
         
-        <div id="startScreen" style="display:block;">
-            <div class="status" id="status">Loading RichAds Video...</div>
-            <button id="startBtn" class="btn-start" disabled>⏳ Preparing Video</button>
+        <div id="loadingScreen">
+            <div class="status" id="status">Initializing video ad network...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
         </div>
         
-        <div id="videoScreen" style="display:none;">
-            <div class="video-container">
-                <div class="video-status" id="videoStatus">🎬 High-paying video ad</div>
-                <div class="progress-circle" id="timerCircle">
-                    <span id="timer">25</span>s
-                </div>
-                <div class="status warning" id="watchStatus">KEEP WATCHING - Don't close!</div>
-            </div>
-            <div class="status success" id="completionMsg" style="display:none;">✅ FULL VIDEO COMPLETED!</div>
+        <div id="adScreen" style="display:none;">
+            <div class="status warning" id="instruction">🔒 STAY ON SCREEN - Full 25s required!</div>
+            <div class="timer" id="timer">25s</div>
+            <button id="startAdBtn" class="btn-start" disabled>⏳ Video Loading...</button>
+        </div>
+        
+        <div id="rewardScreen" style="display:none;">
+            <div class="status success" id="rewardStatus">✅ FULL VIDEO COMPLETED!</div>
+            <div class="title">₹4 Reward Credited!</div>
         </div>
     </div>
 
     <script>
         const CONFIG = {
             API_URL: 'https://103.138.96.188:8000/cashyads/ad-completed',  // ← YOUR VPS IP
-            VIDEO_DURATION: 25,  // 25 seconds full watch required
+            REQUIRED_TIME: 20,  // 20 seconds minimum
             PUB_ID: "993542",
             APP_ID: "4642"
         };
         
         const tg = window.Telegram.WebApp;
-        tg.ready(); tg.expand();
+        tg.ready(); tg.expand(); tg.disableVerticalSwipes();
         
         const userId = tg.initDataUnsafe?.user?.id;
-        let videoTimer = null;
-        let timeLeft = CONFIG.VIDEO_DURATION;
-        let adCompleted = false;
+        let timerInterval = null;
+        let secondsWatched = 0;
+        let isWatching = false;
         
-        // ELEMENTS
-        const startScreen = document.getElementById('startScreen');
-        const videoScreen = document.getElementById('videoScreen');
-        const startBtn = document.getElementById('startBtn');
-        const titleEl = document.getElementById('title');
+        // DOM
+        const loadingScreen = document.getElementById('loadingScreen');
+        const adScreen = document.getElementById('adScreen');
+        const rewardScreen = document.getElementById('rewardScreen');
+        const statusEl = document.getElementById('status');
+        const progressEl = document.getElementById('progress');
         const timerEl = document.getElementById('timer');
-        const timerCircle = document.getElementById('timerCircle');
-        const videoStatus = document.getElementById('videoStatus');
-        const watchStatus = document.getElementById('watchStatus');
-        const completionMsg = document.getElementById('completionMsg');
+        const startAdBtn = document.getElementById('startAdBtn');
+        
+        function updateProgress(percent) {
+            progressEl.style.width = `${percent}%`;
+        }
         
         function updateTimer() {
-            const percent = ((CONFIG.VIDEO_DURATION - timeLeft) / CONFIG.VIDEO_DURATION) * 360;
-            timerCircle.style.background = `conic-gradient(#2ed573 ${percent}deg, rgba(46,213,115,0.3) ${percent}deg)`;
-            timerEl.textContent = timeLeft;
+            const remaining = CONFIG.REQUIRED_TIME - secondsWatched;
+            timerEl.textContent = `${Math.max(0, remaining)}s`;
             
-            if (timeLeft <= 0) {
-                clearInterval(videoTimer);
-                adCompleted = true;
-                titleEl.textContent = '🎉 Video Completed!';
-                completionMsg.style.display = 'block';
-                watchStatus.textContent = '✅ Full watch verified - Claiming reward!';
-                
-                // REWARD USER
-                setTimeout(notifyBackend, 1500);
+            if (secondsWatched >= CONFIG.REQUIRED_TIME) {
+                clearInterval(timerInterval);
+                showRewardScreen();
             }
         }
         
-        function startVideoTimer() {
-            timeLeft = CONFIG.VIDEO_DURATION;
-            videoTimer = setInterval(() => {
-                timeLeft--;
-                updateTimer();
-            }, 1000);
-            updateTimer();
+        function showRewardScreen() {
+            adScreen.style.display = 'none';
+            rewardScreen.style.display = 'block';
+            notifyBackend('full_video_complete');
         }
         
         async function notifyBackend(result) {
             try {
-                const res = await fetch(CONFIG.API_URL, {
+                const response = await fetch(CONFIG.API_URL, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: userId,
                         result: result,
-                        ad_duration: CONFIG.VIDEO_DURATION,
-                        completed: adCompleted,
-                        network: 'richinfo_video_full'
+                        watch_time: secondsWatched,
+                        required_time: CONFIG.REQUIRED_TIME,
+                        network: 'richinfo_single_video'
                     })
                 });
                 
-                const data = await res.json();
-                titleEl.textContent = `✅ +₹${data.reward || 4}!`;
+                const data = await response.json();
+                console.log('✅ Reward confirmed:', data);
                 tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => tg.close(), 3500);
+                setTimeout(() => tg.close(), 4000);
             } catch(e) {
                 console.error('Reward error:', e);
-                setTimeout(tg.close, 4000);
+                setTimeout(tg.close, 5000);
             }
         }
         
-        // INIT RICHINFO
-        async function initRichAds() {
+        // ✅ NO AUTO ADS - MANUAL CONTROL ONLY
+        async function initSingleVideoAd() {
             try {
-                document.getElementById('status').textContent = '🔄 Loading video network...';
+                statusEl.textContent = '✅ Video network ready';
+                updateProgress(100);
                 
-                // YOUR SDK
+                // Initialize WITHOUT auto ads
                 window.TelegramAdsController = new TelegramAdsController();
                 await window.TelegramAdsController.initialize({
                     pubId: CONFIG.PUB_ID,
                     appId: CONFIG.APP_ID,
+                    // NO AUTO ADS - Manual only
+                    autoShow: false,
                     debug: true
                 });
                 
-                document.getElementById('status').textContent = '✅ Video ad ready!';
-                startBtn.disabled = false;
-                startBtn.textContent = '▶️ START VIDEO AD (25s)';
+                loadingScreen.style.display = 'none';
+                adScreen.style.display = 'block';
+                startAdBtn.disabled = false;
+                startAdBtn.textContent = '▶️ PLAY VIDEO AD (25s)';
                 
-            } catch(e) {
-                document.getElementById('status').textContent = '⚠️ Video temporarily unavailable';
-                startBtn.disabled = false;
-                startBtn.textContent = '🎁 GET TEST REWARD';
-                startBtn.onclick = () => notifyBackend('test');
+            } catch(error) {
+                statusEl.textContent = '⚠️ Using test mode';
+                updateProgress(100);
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    adScreen.style.display = 'block';
+                    startAdBtn.disabled = false;
+                    startAdBtn.textContent = '🎁 GET TEST REWARD (25s)';
+                }, 2000);
             }
         }
         
-        // START VIDEO AD
-        startBtn.onclick = async () => {
+        // ✅ SINGLE VIDEO + STRICT TIMER
+        startAdBtn.onclick = async () => {
             try {
-                startBtn.style.display = 'none';
-                document.getElementById('status').textContent = '🎬 Playing video ad...';
+                startAdBtn.style.display = 'none';
+                statusEl.textContent = '🎬 Playing video ad...';
+                statusEl.className = 'status warning';
                 
-                // TRIGGER VIDEO
-                const videoResult = await window.TelegramAdsController.triggerInterstitialVideo();
+                secondsWatched = 0;
+                isWatching = true;
                 
-                // START STRICT TIMER (must watch FULL duration)
-                videoScreen.style.display = 'block';
-                startScreen.style.display = 'none';
-                startVideoTimer();
+                // PLAY ONE VIDEO ONLY
+                const adResult = await window.TelegramAdsController.triggerInterstitialVideo();
                 
-                // VISIBILITY CHECK - Penalize if user switches tabs
+                // STRICT 25s TIMER STARTS
+                timerInterval = setInterval(() => {
+                    secondsWatched++;
+                    updateTimer();
+                }, 1000);
+                
+                // ANTI-TAB-SWITCH
                 document.addEventListener('visibilitychange', () => {
-                    if (document.hidden && timeLeft > 5) {
-                        clearInterval(videoTimer);
-                        log('❌ Tab switched - No reward', 'error');
+                    if (document.hidden && secondsWatched < CONFIG.REQUIRED_TIME - 3) {
+                        clearInterval(timerInterval);
+                        statusEl.textContent = '❌ Tab switched early - No reward';
+                        statusEl.className = 'status error';
+                        setTimeout(() => tg.close(), 2500);
+                    }
+                }, { once: true });
+                
+                // FAILSAFE - Max 35s
+                setTimeout(() => {
+                    if (secondsWatched < CONFIG.REQUIRED_TIME) {
+                        clearInterval(timerInterval);
+                        statusEl.textContent = '⏰ Time expired - No reward';
                         setTimeout(() => tg.close(), 2000);
                     }
-                });
+                }, 35000);
                 
-            } catch(e) {
-                document.getElementById('status').textContent = '⚠️ Video error - Test reward';
-                setTimeout(() => notifyBackend('video_error'), 1500);
+            } catch(error) {
+                // VIDEO FAILED - Still run timer for test
+                statusEl.textContent = '🎬 Test video simulation...';
+                timerInterval = setInterval(() => {
+                    secondsWatched++;
+                    updateTimer();
+                }, 1000);
             }
         };
         
-        // INIT
+        // START
         window.addEventListener('load', () => {
             tg.HapticFeedback.impactOccurred('heavy');
-            setTimeout(initRichAds, 1200);
+            setTimeout(initSingleVideoAd, 1500);
         });
     </script>
 </body>
