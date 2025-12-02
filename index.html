@@ -42,16 +42,18 @@
         button:hover:not(:disabled) { 
             background: #006699; 
         }
+        .error { color: #ff0000; }
     </style>
 </head>
 <body>
     <h2>🎬 Watch Video Ad to Earn ₹3-5</h2>
-    <p>Ad length: ~15-30s. Don't close early—complete for full reward!</p>
-    <div id="status">Initializing Monetag Ad...</div>
+    <p>Ad length: ~15-30s. Tap below to start—complete for full reward!</p>
+    <div id="status">Initializing Monetag SDK...</div>
     <div id="ad-container">
         <!-- Monetag ad will render here via SDK -->
     </div>
-    <button id="retry-btn" style="display:none;">Retry Ad</button>
+    <button id="start-btn">Start Watching Ad</button>
+    <button id="retry-btn" style="display:none;" class="error">Retry Ad (Failed to Load)</button>
     
     <script>
         const tg = window.Telegram.WebApp;
@@ -59,27 +61,57 @@
         tg.expand();  // Full screen
         
         // Custom main button for close (after claim)
-        tg.MainButton.setText('Close').onClick(closeApp).show().setParams({ color: '#0088cc', text_color: 'white' });
+        tg.MainButton.setText('Claim & Close').onClick(closeApp).show().setParams({ color: '#0088cc', text_color: 'white' });
         tg.MainButton.disable();  // Enable only after completion
         
         const statusEl = document.getElementById('status');
         const adContainer = document.getElementById('ad-container');
+        const startBtn = document.getElementById('start-btn');
         const retryBtn = document.getElementById('retry-btn');
+        
+        let preloaded = false;  // Track preload status
+        const ZONE_ID = '10214030';  // Your zone
+        const ymid = tg.initDataUnsafe?.user?.id || 'test-user';  // Telegram user ID for targeting
         
         // Load Monetag SDK dynamically
         function loadMonetagSDK() {
             return new Promise((resolve, reject) => {
+                if (window.show_10214030) {  // Already loaded?
+                    resolve();
+                    return;
+                }
                 const script = document.createElement('script');
                 script.src = '//libtl.com/sdk.js';
-                script.setAttribute('data-zone', '10214030');
-                script.setAttribute('data-sdk', 'show_10214030');
+                script.setAttribute('data-zone', ZONE_ID);
+                script.setAttribute('data-sdk', `show_${ZONE_ID}`);
                 script.onload = () => {
-                    statusEl.textContent = 'SDK loaded. Starting ad...';
+                    statusEl.textContent = 'SDK loaded. Preloading ad...';
                     resolve();
                 };
-                script.onerror = () => reject('SDK load failed');
+                script.onerror = () => reject('SDK load failed - check network/console');
                 document.head.appendChild(script);
             });
+        }
+        
+        // Preload ad (recommended for Rewarded Interstitial)
+        async function preloadAd() {
+            try {
+                statusEl.textContent = 'Preloading ad (background load)...';
+                await show_10214030({
+                    type: 'preload',
+                    ymid: ymid,
+                    timeout: 5  // 5s timeout
+                });
+                preloaded = true;
+                statusEl.textContent = 'Ad preloaded! Tap to watch.';
+                startBtn.disabled = false;
+                startBtn.textContent = 'Start Watching Ad';
+            } catch (error) {
+                console.error('Preload error:', error);
+                statusEl.innerHTML = `Preload failed: ${error.message || 'No inventory'}. <br>Tap to try direct show.`;
+                startBtn.disabled = false;
+                startBtn.textContent = 'Try Direct Ad';
+            }
         }
         
         // Show rewarded interstitial
@@ -87,28 +119,31 @@
             try {
                 statusEl.textContent = 'Playing ad... (Do not close)';
                 adContainer.style.display = 'block';
+                startBtn.style.display = 'none';
+                retryBtn.style.display = 'none';
                 
-                // Call Monetag rewarded interstitial
-                const adResult = await show_10214030();
+                // Use preloaded if available, else direct
+                const showFn = preloaded ? show_10214030({ ymid: ymid }) : show_10214030({ ymid: ymid });
+                await showFn;
                 
                 // On success (user watched full ad)
-                if (adResult) {
-                    statusEl.textContent = 'Ad completed! Claiming reward...';
-                    tg.HapticFeedback.impactOccurred('light');  // Telegram vibration for polish
-                    
-                    // Send data to bot for reward
-                    tg.sendData(JSON.stringify({
-                        result: 'video_completed'  // Matches your bot's success_results
-                    }));
-                    
-                    tg.MainButton.enable();
-                    retryBtn.style.display = 'none';
-                }
+                statusEl.textContent = 'Ad completed! Claiming reward...';
+                tg.HapticFeedback.impactOccurred('light');  // Telegram vibration
+                
+                // Send data to bot for reward
+                tg.sendData(JSON.stringify({
+                    result: 'video_completed'  // Matches your bot's success_results
+                }));
+                
+                tg.MainButton.enable();
+                startBtn.style.display = 'none';  // Hide start after success
             } catch (error) {
                 console.error('Monetag ad error:', error);
-                statusEl.textContent = 'Ad failed to load. Please retry.';
+                statusEl.innerHTML = `<span class="error">Ad failed: ${error.message || 'Timeout/No ad available'}</span><br>Check console or retry.`;
                 retryBtn.style.display = 'block';
                 adContainer.style.display = 'none';
+                startBtn.style.display = 'block';
+                startBtn.disabled = true;  // Disable until retry
             }
         }
         
@@ -116,31 +151,31 @@
         async function init() {
             try {
                 await loadMonetagSDK();
-                await showMonetagAd();
+                await preloadAd();  // Preload first
             } catch (error) {
-                statusEl.textContent = 'Failed to initialize. Contact support.';
+                statusEl.innerHTML = `<span class="error">Init failed: ${error}</span><br>Contact support.`;
                 retryBtn.style.display = 'block';
+                startBtn.style.display = 'none';
             }
         }
+        
+        // Start button (user interaction)
+        startBtn.onclick = () => {
+            showMonetagAd();
+        };
         
         // Retry button
         retryBtn.onclick = () => {
             retryBtn.style.display = 'none';
-            adContainer.style.display = 'block';
-            showMonetagAd();
+            statusEl.textContent = 'Retrying...';
+            preloaded = false;  // Reset
+            showMonetagAd();  // Direct try
         };
         
         // Close app
         function closeApp() {
             tg.close();
         }
-        
-        // Fallback: Enforce min time (15s) - SDK should handle, but safety
-        setTimeout(() => {
-            if (statusEl.textContent.includes('Playing')) {
-                statusEl.textContent += ' (Almost done!)';
-            }
-        }, 12000);
         
         // Start
         init();
