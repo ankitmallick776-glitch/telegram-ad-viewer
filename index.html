@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CashyAds - Watch Video & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script> <!-- Success animation -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -46,12 +46,7 @@
         .btn-start:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .progress-bar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; margin: 20px 0; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, #2ed573, #26de81); width: 0%; transition: width 0.3s ease; }
-        .controls { display: flex; justify-content: space-around; margin: 15px 0; opacity: 0.9; }
-        .sound-toggle { background: #2196F3; padding: 10px 20px; border-radius: 20px; font-size: 14px; cursor: pointer; transition: background 0.3s; }
-        .sound-toggle:hover { background: #1976D2; }
         .hidden { display: none !important; }
-        #ad-container { width: 100%; height: 250px; background: #000; border-radius: 12px; margin: 15px 0; display: none; overflow: hidden; }
-        #demo-video { width: 100%; height: 100%; object-fit: cover; }
         .reward-amount { font-size: 48px; font-weight: bold; color: #2ed573; margin: 20px 0; }
         .api-status { font-size: 12px; opacity: 0.8; margin-top: 10px; }
     </style>
@@ -59,11 +54,11 @@
 <body>
     <div class="container">
         <div class="logo">🎥</div>
-        <div class="title" id="title">Watch ONE Video Ad</div>
+        <div class="title">Watch REAL Video Ad</div>
         <div class="subtitle">Complete 25s → Get ₹3-5 Guaranteed</div>
        
         <div id="loadingScreen">
-            <div class="status" id="status">Initializing Monetag network...</div>
+            <div class="status" id="status">Loading Monetag ads...</div>
             <div class="progress-bar">
                 <div class="progress-fill" id="progress"></div>
             </div>
@@ -72,112 +67,84 @@
         <div id="adScreen" class="hidden">
             <div class="status warning" id="instruction">🔒 STAY ON SCREEN - Full 25s required!</div>
             <div class="timer" id="timer">25s</div>
-            <div id="ad-container">
-                <video id="demo-video" preload="auto" muted loop>
-                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                    Demo video not supported.
-                </video>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress2"></div>
             </div>
-            <div class="controls">
-                <div class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 Sound Off</div>
-            </div>
-            <button id="startAdBtn" class="btn-start" disabled>⏳ Video Loading...</button>
+            <button id="startAdBtn" class="btn-start" disabled>⏳ Loading Premium Ads...</button>
         </div>
        
         <div id="rewardScreen" class="hidden">
-            <div class="status success" id="rewardStatus">✅ FULL VIDEO COMPLETED!</div>
-            <div class="title">Video Ad Reward</div>
+            <div class="status success">✅ AD COMPLETED!</div>
+            <div class="title">Reward Credited</div>
             <div class="reward-amount" id="rewardAmount">₹5</div>
-            <div class="api-status" id="apiStatus">Processing reward...</div>
-            <button class="btn-start" onclick="closeApp()">Back to Bot</button>
+            <div class="api-status" id="apiStatus">Processing...</div>
+            <button class="btn-start" onclick="closeApp()">✅ Back to Bot</button>
         </div>
     </div>
+
     <script>
         const CONFIG = {
             ZONE_ID: '10214030',
-            REQUIRED_TIME: 25, // 25 seconds minimum
-            DEMO_MODE: new URLSearchParams(window.location.search).get('demo') === '1', // ?demo=1 for testing
-            API_ENDPOINT: 'http://103.138.96.188:8001/cashyads/ad-completed' // ✅ CHANGE THIS TO YOUR VPS IP/DOMAIN
+            REQUIRED_TIME: 25,
+            API_ENDPOINT: 'http://103.138.96.188:8001/cashyads/ad-completed'
         };
-       
+
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.disableVerticalSwipes();
-       
+        tg.ready(); tg.expand(); tg.disableVerticalSwipes();
+
         const userId = tg.initDataUnsafe?.user?.id;
         let timerInterval = null;
         let secondsWatched = 0;
-        let isWatching = false;
-        let isDemo = CONFIG.DEMO_MODE;
-        let video = document.getElementById('demo-video');
-        let isSoundOn = false;
-        let retries = 0;
-        const MAX_RETRIES = 3;
-       
-        // DOM Elements
+        let adComplete = false;
+
+        // DOM elements
         const loadingScreen = document.getElementById('loadingScreen');
         const adScreen = document.getElementById('adScreen');
         const rewardScreen = document.getElementById('rewardScreen');
         const statusEl = document.getElementById('status');
         const progressEl = document.getElementById('progress');
+        const progressEl2 = document.getElementById('progress2');
         const timerEl = document.getElementById('timer');
         const startAdBtn = document.getElementById('startAdBtn');
-        const adContainer = document.getElementById('ad-container');
-        const soundToggle = document.getElementById('soundToggle');
         const rewardAmountEl = document.getElementById('rewardAmount');
         const apiStatusEl = document.getElementById('apiStatus');
-       
-        // Success animation
-        function celebrate() {
-            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-       
-        // Toggle sound (for demo)
-        function toggleSound() {
-            isSoundOn = !isSoundOn;
-            video.muted = !isSoundOn;
-            soundToggle.textContent = isSoundOn ? '🔊 Sound On' : '🔇 Sound Off';
-            tg.HapticFeedback.impactOccurred('light');
-        }
-       
-        // Update progress/timer
-        function updateProgress(percent) {
-            progressEl.style.width = `${percent}%`;
-        }
-        function updateTimer() {
-            const remaining = CONFIG.REQUIRED_TIME - secondsWatched;
-            timerEl.textContent = `${Math.max(0, remaining)}s`;
-            updateProgress((secondsWatched / CONFIG.REQUIRED_TIME) * 100);
-           
-            if (secondsWatched >= CONFIG.REQUIRED_TIME) {
-                clearInterval(timerInterval);
-                showRewardScreen();
-            }
-        }
-       
-        // ✅ CRITICAL FIX: Send reward to backend API
-        async function sendRewardToBackend() {
-            if (!userId) {
-                console.error('❌ User ID not found - cannot send reward');
-                apiStatusEl.textContent = '❌ Error: User ID missing. Restart bot.';
-                apiStatusEl.style.color = '#ff4757';
-                return false;
-            }
 
+        // Load Monetag SDK
+        function loadMonetag() {
+            return new Promise((resolve) => {
+                if (window[`show_${CONFIG.ZONE_ID}`]) {
+                    resolve(true);
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://sdk-ads.monetag.com/sdk.js';
+                script.async = true;
+                script.setAttribute('data-zone', CONFIG.ZONE_ID);
+                script.setAttribute('data-sdk', `show_${CONFIG.ZONE_ID}`);
+                
+                script.onload = () => {
+                    statusEl.textContent = '✅ Premium ads ready';
+                    progressEl.style.width = '100%';
+                    resolve(true);
+                };
+                
+                script.onerror = () => {
+                    statusEl.textContent = '❌ Ad network unavailable';
+                    startAdBtn.disabled = true;
+                    resolve(false);
+                };
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        // Send reward
+        async function sendReward() {
             try {
-                console.log('📤 Sending reward to backend...', {
-                    user_id: userId,
-                    result: 'video_completed',
-                    watch_time: secondsWatched
-                });
-
                 const response = await fetch(CONFIG.API_ENDPOINT, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: userId,
                         result: 'video_completed',
@@ -186,209 +153,78 @@
                 });
 
                 const data = await response.json();
-                console.log('📥 Backend Response:', data);
-
+                
                 if (data.success) {
-                    const reward = data.reward || 5;
-                    const newBalance = data.new_balance || 0;
-                    rewardAmountEl.textContent = `₹${reward}`;
-                    apiStatusEl.textContent = `✅ Reward credited! New balance: ₹${newBalance.toFixed(2)}`;
-                    apiStatusEl.style.color = '#2ed573';
-                    return true;
+                    rewardAmountEl.textContent = `₹${data.reward}`;
+                    apiStatusEl.textContent = `✅ Credited! Balance: ₹${data.new_balance}`;
                 } else {
-                    apiStatusEl.textContent = `⚠️ ${data.message || 'Reward processing...'}`;
-                    apiStatusEl.style.color = '#f1c40f';
-                    return false;
+                    apiStatusEl.textContent = `⚠️ ${data.message}`;
                 }
             } catch (error) {
-                console.error('❌ Backend API Error:', error);
-                apiStatusEl.textContent = `❌ Network error: ${error.message}`;
-                apiStatusEl.style.color = '#ff4757';
-                return false;
+                apiStatusEl.textContent = '❌ Network error';
+                console.error('API Error:', error);
             }
         }
-       
-        // Show reward & notify bot
-        async function showRewardScreen() {
-            adScreen.style.display = 'none';
-            rewardScreen.style.display = 'block';
-            celebrate();
+
+        // Timer
+        function updateTimer() {
+            const remaining = CONFIG.REQUIRED_TIME - secondsWatched;
+            timerEl.textContent = `${Math.max(0, remaining)}s`;
+            progressEl2.style.width = `${(secondsWatched / CONFIG.REQUIRED_TIME) * 100}%`;
             
-            // ✅ Send data to backend API (PRIMARY)
-            await sendRewardToBackend();
-            
-            // Also send to Telegram bot (for chat notification)
-            tg.sendData(JSON.stringify({
-                result: 'video_completed',
-                watch_time: secondsWatched,
-                user_id: userId
-            }));
-            
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-       
-        // Close app
-        function closeApp() {
-            tg.close();
-        }
-       
-        // Fallback to demo video
-        function fallbackToDemo() {
-            isDemo = true;
-            retries++;
-            statusEl.textContent = `⚠️ Monetag unavailable (try ${MAX_RETRIES - retries + 1}/3). Using demo.`;
-            statusEl.className = 'status warning';
-            adContainer.style.display = 'block';
-            video.style.display = 'block';
-            video.currentTime = 0;
-            video.play().catch(() => { statusEl.className = 'status error'; statusEl.textContent = 'Demo play failed'; });
-            soundToggle.style.display = 'inline-block';
-        }
-       
-        // Load & init Monetag SDK
-        async function initMonetag() {
-            return new Promise((resolve, reject) => {
-                if (window.show_10214030) return resolve(); // Already loaded
-                const script = document.createElement('script');
-                script.src = '//libtl.com/sdk.js';
-                script.setAttribute('data-zone', CONFIG.ZONE_ID);
-                script.setAttribute('data-sdk', 'show_10214030');
-                script.onload = () => {
-                    statusEl.textContent = '✅ Monetag SDK loaded - Preloading ad...';
-                    updateProgress(75);
-                    resolve();
-                };
-                script.onerror = () => reject('SDK load failed');
-                document.head.appendChild(script);
-            });
-        }
-       
-        // Show Monetag ad (user-triggered)
-        async function showMonetagAd() {
-            try {
-                const ymid = userId || 'anon';
-                statusEl.textContent = 'Loading premium ad...';
-                updateProgress(90);
-               
-                // Preload for better fill (from SDK examples)
-                await show_10214030({ ymid, timeout: 5 });
-               
-                // Show rewarded interstitial on user click
-                await show_10214030().then(() => {
-                    console.log('Monetag ad completed - starting timer');
-                });
-               
-                statusEl.textContent = '✅ Ad played - Watching timer...';
-                statusEl.className = 'status warning';
-               
-            } catch (error) {
-                console.error('Monetag error:', error);
-                if (retries < MAX_RETRIES) {
-                    setTimeout(() => {
-                        startAdBtn.disabled = false;
-                        startAdBtn.textContent = 'Retry Ad';
-                    }, 1000);
-                } else {
-                    fallbackToDemo();
-                }
+            if (secondsWatched >= CONFIG.REQUIRED_TIME && adComplete) {
+                clearInterval(timerInterval);
+                rewardScreen.style.display = 'block';
+                adScreen.style.display = 'none';
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                sendReward();
+                tg.sendData(JSON.stringify({ result: 'video_completed' }));
             }
         }
-       
-        // Start ad (user click - required for SDK)
-        startAdBtn.onclick = async () => {
+
+        // Start ad
+        startAdBtn.onclick = () => {
             startAdBtn.style.display = 'none';
-            statusEl.textContent = '🎬 Playing video ad...';
-            statusEl.className = 'status warning';
-            adContainer.style.display = 'block';
-            soundToggle.style.display = 'inline-block';
-           
-            secondsWatched = 0;
-            isWatching = true;
-           
-            try {
-                if (!isDemo) {
-                    await initMonetag();
-                    await showMonetagAd();
-                } else {
-                    video.play();
-                }
-               
-                // Start strict timer
-                timerInterval = setInterval(() => {
-                    secondsWatched++;
-                    updateTimer();
-                }, 1000);
-               
-                // Video events (for demo)
-                if (isDemo) {
-                    video.ontimeupdate = () => updateProgress(video.currentTime / CONFIG.REQUIRED_TIME * 100);
-                    video.onended = () => { if (secondsWatched >= CONFIG.REQUIRED_TIME) showRewardScreen(); };
-                }
-               
-            } catch (error) {
-                console.error('Ad trigger error:', error);
-                fallbackToDemo();
-                timerInterval = setInterval(() => {
-                    secondsWatched++;
-                    updateTimer();
-                }, 1000);
+            statusEl.textContent = '🎬 Premium ad loading...';
+            
+            // Show Monetag ad
+            if (window[`show_${CONFIG.ZONE_ID}`]) {
+                window[`show_${CONFIG.ZONE_ID}`]({ 
+                    ymid: userId || 'anon',
+                    onClose: () => {
+                        adComplete = true;
+                        statusEl.textContent = '✅ Ad watched - timer started';
+                        secondsWatched = 0;
+                        timerInterval = setInterval(updateTimer, 1000);
+                    }
+                });
             }
-           
-            // Anti-tab-switch & failsafe
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && secondsWatched < CONFIG.REQUIRED_TIME - 3) {
-                    clearInterval(timerInterval);
-                    statusEl.textContent = '❌ Tab switched early - No reward';
-                    statusEl.className = 'status error';
-                    setTimeout(closeApp, 2500);
-                }
-            }, { once: true });
-           
-            // Max 35s failsafe
-            setTimeout(() => {
-                if (secondsWatched < CONFIG.REQUIRED_TIME) {
-                    clearInterval(timerInterval);
-                    statusEl.textContent = '⏰ Time expired - No reward';
-                    statusEl.className = 'status error';
-                    setTimeout(closeApp, 2000);
-                }
-            }, 35000);
         };
-       
-        // Load & start
-        window.addEventListener('load', () => {
-            // Check if user ID exists
+
+        // Initialize
+        window.addEventListener('load', async () => {
             if (!userId) {
-                statusEl.textContent = '❌ Error: Not loaded from Telegram. Open via bot.';
-                statusEl.className = 'status error';
-                startAdBtn.disabled = true;
+                statusEl.textContent = '❌ Open from Telegram bot only';
                 return;
             }
 
-            console.log('✅ Telegram User ID:', userId);
+            console.log('✅ User:', userId);
+            const monetagReady = await loadMonetag();
             
-            tg.HapticFeedback.impactOccurred('heavy');
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
                 adScreen.style.display = 'block';
-                if (CONFIG.DEMO_MODE) {
-                    isDemo = true;
+                
+                if (monetagReady) {
                     startAdBtn.disabled = false;
-                    startAdBtn.textContent = '🎁 GET TEST REWARD (25s)';
-                    statusEl.textContent = 'Demo mode - Tap to start!';
-                } else {
-                    initMonetag().then(() => {
-                        startAdBtn.disabled = false;
-                        startAdBtn.textContent = '▶️ PLAY PREMIUM VIDEO AD (25s)';
-                        statusEl.textContent = '✅ Ready - Premium ad preloaded';
-                    }).catch(() => {
-                        fallbackToDemo();
-                        startAdBtn.disabled = false;
-                        startAdBtn.textContent = '▶️ PLAY DEMO AD (25s)';
-                    });
+                    startAdBtn.textContent = '▶️ WATCH PREMIUM AD (25s)';
                 }
-            }, 1500);
+            }, 2000);
         });
+
+        function closeApp() {
+            tg.close();
+        }
     </script>
 </body>
 </html>
