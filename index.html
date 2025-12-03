@@ -1,43 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title></title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Your Monetag SDK tag from dashboard -->
+  <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
 </head>
-<body style="margin:0;padding:0;background:black;width:100vw;height:100vh;overflow:hidden;">
-    
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.MainButton.hide();
-        
-        // YOUR BOT ENDPOINT - CHANGE IP
-        const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
-        const userId = tg.initDataUnsafe.user?.id || 12345;
-        
-        // ✅ INSTANT AD - NO UI - 17 SECONDS TOTAL
-        window.onload = async () => {
-            try {
-                await show_10214030();
-            } catch(e) {}
-            
-            // REWARD + AUTO CLOSE AFTER EXACTLY 17 SECONDS
-            setTimeout(() => {
-                fetch(BOT_API, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_id: userId,
-                        result: 'completed',
-                        reward: 4.25
-                    })
-                });
-                tg.close();
-            }, 17000);
-        };
-    </script>
+<body style="margin:0;background:#000;width:100vw;height:100vh;overflow:hidden;">
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.MainButton.hide();
+
+    // UPDATE with your VPS IP
+    const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
+    const userId = tg.initDataUnsafe.user?.id || 12345;
+
+    window.onload = async () => {
+      try { await show_10214030(); } catch (e) {}
+      // 2-second total session → reward + auto-close
+      setTimeout(() => {
+        fetch(BOT_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            result: 'completed',
+            reward: 4.25
+          })
+        }).catch(()=>{});
+        tg.close();
+      }, 2000);
+    };
+  </script>
 </body>
 </html>
