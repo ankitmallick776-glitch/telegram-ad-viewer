@@ -32,7 +32,7 @@
         tg.expand();
         tg.MainButton.setText('Close').show();
         
-        // YOUR BOT ENDPOINT - UPDATE IP!
+        // ✅ UPDATE ONLY YOUR VPS IP HERE
         const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
         const userId = tg.initDataUnsafe.user?.id || 12345;
         
@@ -45,24 +45,23 @@
             setTimeout(() => status.style.display = 'none', 4000);
         }
         
-        // ✅ OFFICIAL MONETAG REWARDED INTERSTITIAL
+        // ✅ OFFICIAL MONETAG - YOUR DASHBOARD CODE
         async function watchRewardedAd() {
             const btn = document.getElementById('watchBtn');
             btn.disabled = true;
             btn.innerHTML = '⏳ Loading Rewarded Ad...';
             
             try {
-                // ✅ YOUR EXACT OFFICIAL CODE FROM DASHBOARD
+                // YOUR OFFICIAL CODE FROM DASHBOARD ✅
                 await show_10214030().then(() => {
-                    // ✅ AD COMPLETED - REWARD USER!
                     giveReward();
-                }).catch((error) => {
+                }).catch(() => {
                     showStatus('Ad failed - Try again!', false);
                     btn.disabled = false;
                     btn.innerHTML = '💰 WATCH REWARDED AD';
                 });
             } catch(e) {
-                showStatus('Connection error - Retry!', false);
+                showStatus('Retry!', false);
                 btn.disabled = false;
                 btn.innerHTML = '💰 WATCH REWARDED AD';
             }
@@ -71,25 +70,23 @@
         function giveReward() {
             const reward = (3 + Math.random() * 2).toFixed(2);
             
-            // Send to your bot
+            // Send reward to YOUR BOT
             fetch(BOT_API, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     user_id: userId,
                     result: 'completed',
-                    reward: parseFloat(reward),
-                    zone: '10214030'
+                    reward: parseFloat(reward)
                 })
-            }).catch(() => {}); // Silent fail OK
+            }).catch(() => {});
             
-            showStatus(`🎉 +₹${reward} Earned Successfully!`, true);
-            tg.HapticFeedback.notificationOccurred('success');
+            showStatus(`🎉 +₹${reward} Earned!`, true);
+            tg.HapticFeedback.notificationSuccess();
             
-            // Reset button
             setTimeout(() => {
                 document.getElementById('watchBtn').disabled = false;
-                document.getElementById('watchBtn').innerHTML = '💰 WATCH ANOTHER AD';
+                document.getElementById('watchBtn').innerHTML = '💰 WATCH MORE ADS';
             }, 2000);
         }
         
