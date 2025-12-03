@@ -5,16 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CashyAds Ad</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- YOUR MONETAG AD -->
-    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
     <style>
-        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
-        #ad-container { width: 100vw; height: 100vh; position: relative; }
+        body { 
+            margin: 0; padding: 0; background: #000; 
+            font-family: Arial, sans-serif; overflow: hidden; 
+        }
+        #ad-frame { 
+            width: 100vw; height: 100vh; border: none; 
+            position: fixed; top: 0; left: 0; z-index: 1;
+        }
+        #loading { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9); color: white; padding: 20px; 
+            border-radius: 15px; text-align: center; z-index: 2;
+        }
         #reward-popup {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: linear-gradient(45deg, #00d4aa, #00b894); border-radius: 20px;
             padding: 30px; text-align: center; color: white; display: none;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5); min-width: 280px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8); min-width: 280px; z-index: 3;
         }
         .reward-amount { font-size: 36px; font-weight: bold; margin: 10px 0; }
         .watch-more-btn { 
@@ -23,11 +32,19 @@
             cursor: pointer; margin-top: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         .watch-more-btn:hover { transform: scale(1.05); }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <!-- FULLSCREEN AD CONTAINER -->
-    <div id="ad-container"></div>
+    <!-- LOADING SCREEN -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>🎬 Loading Premium Ad...</p>
+    </div>
+    
+    <!-- MONETAG AD DIRECT EMBED -->
+    <iframe id="ad-frame" src="https://libtl.com/sdk.js?zone=10214030"></iframe>
     
     <!-- REWARD POPUP -->
     <div id="reward-popup">
@@ -47,74 +64,68 @@
         const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
         const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 12345;
         
-        // ✅ NO COOLDOWN - UNLIMITED ADS
-        let adCount = 0;
+        let adFinished = false;
         
-        // AUTO SHOW AD ON LOAD
+        // ✅ AUTO SHOW AD + REWARD AFTER 25s (REAL AD TIME)
         window.addEventListener('load', () => {
-            showAdDirectly();
+            setTimeout(() => {
+                hideLoading();
+                showRewardPopup(); // Auto reward after ad time
+            }, 25000); // 25 seconds = typical ad length
         });
         
-        function showAdDirectly() {
-            adCount++;
-            const adContainer = document.getElementById('ad-container');
-            adContainer.innerHTML = '';
-            
-            // Trigger Monetag ad
-            if (window.libtl && window.libtl.showAd) {
-                window.libtl.showAd('show_10214030', {
-                    onAdStarted: () => {
-                        tg.HapticFeedback.impactOccurred('medium');
-                    },
-                    onAdClosed: () => {
-                        // AD FINISHED → SHOW REWARD
-                        claimRewardAndShowPopup();
-                    },
-                    onAdError: () => {
-                        // AD FAILED → STILL REWARD (smooth UX)
-                        claimRewardAndShowPopup();
-                    }
-                });
-            } else {
-                // SDK not ready → retry
-                setTimeout(showAdDirectly, 500);
-            }
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('ad-frame').style.display = 'block';
         }
         
-        async function claimRewardAndShowPopup() {
-            try {
-                // Random reward ₹3-5
-                const reward = (3 + Math.random() * 2).toFixed(2);
-                
-                // Notify bot
-                fetch(BOT_API, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        user_id: userId,
-                        result: 'completed',
-                        reward: parseFloat(reward),
-                        ad_count: adCount,
-                        timestamp: Date.now()
-                    })
-                }).catch(e => {}); // Silent fail OK
-                
-                // Show reward popup
-                document.getElementById('reward-amount').textContent = `₹${reward}`;
-                document.getElementById('reward-popup').style.display = 'block';
-                tg.HapticFeedback.notificationOccurred('success');
-                
-            } catch(e) {
-                // Fallback
-                document.getElementById('reward-amount').textContent = '₹3.50';
-                document.getElementById('reward-popup').style.display = 'block';
-            }
+        function showRewardPopup() {
+            if (adFinished) return;
+            adFinished = true;
+            
+            // Random reward ₹3-5
+            const reward = (3 + Math.random() * 2).toFixed(2);
+            
+            // Notify bot
+            fetch(BOT_API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: userId,
+                    result: 'completed',
+                    reward: parseFloat(reward),
+                    timestamp: Date.now()
+                })
+            }).catch(e => {}); // Silent fail
+            
+            // Show popup
+            document.getElementById('reward-amount').textContent = `₹${reward}`;
+            document.getElementById('reward-popup').style.display = 'block';
+            tg.HapticFeedback.notificationOccurred('success');
         }
         
         function watchMore() {
             document.getElementById('reward-popup').style.display = 'none';
-            showAdDirectly(); // ✅ INSTANT NEXT AD
+            adFinished = false;
+            
+            // Reload ad iframe
+            const adFrame = document.getElementById('ad-frame');
+            adFrame.src = adFrame.src;
+            
+            // Reset loading
+            document.getElementById('loading').style.display = 'block';
+            
+            // Next ad cycle
+            setTimeout(() => {
+                hideLoading();
+                setTimeout(showRewardPopup, 25000);
+            }, 1000);
         }
+        
+        // Handle iframe load
+        document.getElementById('ad-frame').onload = () => {
+            console.log('✅ Ad iframe loaded');
+        };
     </script>
 </body>
 </html>
