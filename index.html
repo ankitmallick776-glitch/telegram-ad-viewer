@@ -5,49 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CashyAds</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-</head>
-<body style="margin:0;padding:0;background:#000;font-family:Arial;">
     
-    <!-- ✅ DIRECT MONETAG EMBED - THIS ALWAYS WORKS -->
-    <div style="width:100vw;height:100vh;overflow:hidden;">
-        <script type="text/javascript">
-            (function(w,d,s,o,f,js,fjs){
-                w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
-                if(!d.getElementById(f)){
-                    js=d.createElement(s); js.id=f;
-                    js.src='//libtl.com/sdk.js';
-                    js.setAttribute('data-zone','10214030');
-                    js.setAttribute('data-sdk','show_10214030');
-                    fjs=d.getElementsByTagName(s)[0];
-                    fjs.parentNode.insertBefore(js,fjs);
-                }
-            })(window,document,'script','libtl','sdk');
-        </script>
+    <!-- ✅ YOUR MONETAG SDK -->
+    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
+</head>
+<body style="margin:0;padding:20px;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:white;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:center;">
+    
+    <div style="max-width:400px;margin:0 auto;">
+        <h1 style="font-size:32px;margin:30px 0 15px 0;">🎬 CashyAds</h1>
+        <p style="font-size:18px;opacity:0.9;margin-bottom:40px;">Watch Video → Earn ₹3-5</p>
+        
+        <button id="watchBtn" style="
+            background:linear-gradient(45deg,#ff6b6b,#feca57);color:white;border:none;
+            border-radius:25px;padding:25px;font-size:22px;font-weight:bold;
+            width:100%;cursor:pointer;box-shadow:0 15px 35px rgba(255,107,107,0.4);
+            transition:all 0.3s ease;margin-bottom:20px;
+        " onclick="watchRewardedAd()">
+            💰 WATCH REWARDED AD
+        </button>
+        
+        <div id="status" style="padding:20px;border-radius:20px;font-weight:bold;display:none;"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.MainButton.setText('Close').show().onClick(() => {
-            // AUTO REWARD ON CLOSE
+        tg.MainButton.setText('Close').show();
+        
+        // YOUR BOT ENDPOINT - UPDATE IP!
+        const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
+        const userId = tg.initDataUnsafe.user?.id || 12345;
+        
+        function showStatus(msg, success=false) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.style.background = success ? 'rgba(0,212,170,0.9)' : 'rgba(255,71,87,0.9)';
+            status.style.color = 'white';
+            status.style.display = 'block';
+            setTimeout(() => status.style.display = 'none', 4000);
+        }
+        
+        // ✅ OFFICIAL MONETAG REWARDED INTERSTITIAL
+        async function watchRewardedAd() {
+            const btn = document.getElementById('watchBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Loading Rewarded Ad...';
+            
+            try {
+                // ✅ YOUR EXACT OFFICIAL CODE FROM DASHBOARD
+                await show_10214030().then(() => {
+                    // ✅ AD COMPLETED - REWARD USER!
+                    giveReward();
+                }).catch((error) => {
+                    showStatus('Ad failed - Try again!', false);
+                    btn.disabled = false;
+                    btn.innerHTML = '💰 WATCH REWARDED AD';
+                });
+            } catch(e) {
+                showStatus('Connection error - Retry!', false);
+                btn.disabled = false;
+                btn.innerHTML = '💰 WATCH REWARDED AD';
+            }
+        }
+        
+        function giveReward() {
             const reward = (3 + Math.random() * 2).toFixed(2);
-            fetch('http://103.138.96.188:8001/cashyads/ad-completed', {
+            
+            // Send to your bot
+            fetch(BOT_API, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    user_id: tg.initDataUnsafe.user?.id || 12345,
+                    user_id: userId,
                     result: 'completed',
-                    reward: parseFloat(reward)
+                    reward: parseFloat(reward),
+                    zone: '10214030'
                 })
-            }).catch(() => {});
-            tg.close();
-        });
+            }).catch(() => {}); // Silent fail OK
+            
+            showStatus(`🎉 +₹${reward} Earned Successfully!`, true);
+            tg.HapticFeedback.notificationOccurred('success');
+            
+            // Reset button
+            setTimeout(() => {
+                document.getElementById('watchBtn').disabled = false;
+                document.getElementById('watchBtn').innerHTML = '💰 WATCH ANOTHER AD';
+            }, 2000);
+        }
         
-        // AUTO CLOSE + REWARD AFTER 30 SECONDS
-        setTimeout(() => {
-            tg.MainButton.text = 'Claim ₹3-5';
-            tg.MainButton.onClick(() => tg.close());
-        }, 28000);
+        tg.MainButton.onClick(() => tg.close());
     </script>
 </body>
 </html>
