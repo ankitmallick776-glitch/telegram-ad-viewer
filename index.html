@@ -1,175 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashyAds - Watch & Earn</title>
+    <title>CashyAds Ad</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- MONETAG SDK - REPLACE YOUR_PUBLISHER_ID -->
-    <script async src="https://sdk.monetag.com/v2/sdk.js?publisher=YOUR_PUBLISHER_ID"></script>
+    <!-- YOUR MONETAG AD -->
+    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: white;
-            padding: 20px;
+        body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+        #ad-container { width: 100vw; height: 100vh; position: relative; }
+        #reward-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #00d4aa, #00b894); border-radius: 20px;
+            padding: 30px; text-align: center; color: white; display: none;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5); min-width: 280px;
         }
-        .container { max-width: 400px; margin: 0 auto; flex: 1; }
-        .header {
-            text-align: center; margin-bottom: 30px;
-            animation: fadeIn 0.8s ease-in;
+        .reward-amount { font-size: 36px; font-weight: bold; margin: 10px 0; }
+        .watch-more-btn { 
+            background: linear-gradient(45deg, #ff6b6b, #feca57); color: white; border: none; 
+            padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold;
+            cursor: pointer; margin-top: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        .header h1 { font-size: 28px; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 16px; }
-        .stats {
-            background: rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-        }
-        .stat-row {
-            display: flex; justify-content: space-between;
-            margin-bottom: 12px; font-size: 16px;
-        }
-        .stat-value { font-weight: bold; font-size: 20px; }
-        .watch-btn {
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            border: none;
-            border-radius: 25px;
-            height: 60px;
-            width: 100%;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 10px 30px rgba(254,202,87,0.4);
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-        .watch-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(254,202,87,0.6); }
-        .watch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .status { text-align: center; padding: 15px; border-radius: 15px; margin: 10px 0; }
-        .status.success { background: rgba(46,204,113,0.3); }
-        .status.error { background: rgba(231,76,60,0.3); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .watch-more-btn:hover { transform: scale(1.05); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎬 CashyAds</h1>
-            <p>Watch ads & earn real money!</p>
-        </div>
-        
-        <div class="stats">
-            <div class="stat-row">
-                <span>💰 Balance</span>
-                <span class="stat-value" id="balance">₹0.00</span>
-            </div>
-            <div class="stat-row">
-                <span>📺 Ads Watched</span>
-                <span class="stat-value" id="ads">0</span>
-            </div>
-        </div>
-        
-        <button class="watch-btn" id="watchBtn">🎬 WATCH VIDEO AD (₹3-5)</button>
-        
-        <div id="status"></div>
+    <!-- FULLSCREEN AD CONTAINER -->
+    <div id="ad-container"></div>
+    
+    <!-- REWARD POPUP -->
+    <div id="reward-popup">
+        <h2>🎉 REWARDED!</h2>
+        <div class="reward-amount" id="reward-amount">₹4.25</div>
+        <p>Ad watched successfully!</p>
+        <button class="watch-more-btn" onclick="watchMore()">🔥 WATCH MORE ADS</button>
+        <p style="font-size: 12px; margin-top: 10px; opacity: 0.8;">Unlimited ads available!</p>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.MainButton.setText('Close').show().onClick(() => tg.close());
+        tg.MainButton.hide();
         
-        // REPLACE WITH YOUR BOT ENDPOINT
+        // YOUR BOT ENDPOINT - UPDATE IP
         const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
         const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 12345;
         
-        let canWatch = true;
+        // ✅ NO COOLDOWN - UNLIMITED ADS
+        let adCount = 0;
         
-        // Update stats from bot
-        async function updateStats() {
-            try {
-                // You can add stats API here later
-                document.getElementById('balance').textContent = '₹12.50';
-                document.getElementById('ads').textContent = '8';
-            } catch(e) {}
-        }
+        // AUTO SHOW AD ON LOAD
+        window.addEventListener('load', () => {
+            showAdDirectly();
+        });
         
-        // Show status message
-        function showStatus(msg, type = 'info') {
-            const status = document.getElementById('status');
-            status.textContent = msg;
-            status.className = `status ${type}`;
-            setTimeout(() => status.textContent = '', 5000);
-        }
-        
-        // Watch ad button
-        document.getElementById('watchBtn').onclick = async () => {
-            if (!canWatch) {
-                showStatus('⏰ Wait 5 minutes between ads!', 'error');
-                return;
+        function showAdDirectly() {
+            adCount++;
+            const adContainer = document.getElementById('ad-container');
+            adContainer.innerHTML = '';
+            
+            // Trigger Monetag ad
+            if (window.libtl && window.libtl.showAd) {
+                window.libtl.showAd('show_10214030', {
+                    onAdStarted: () => {
+                        tg.HapticFeedback.impactOccurred('medium');
+                    },
+                    onAdClosed: () => {
+                        // AD FINISHED → SHOW REWARD
+                        claimRewardAndShowPopup();
+                    },
+                    onAdError: () => {
+                        // AD FAILED → STILL REWARD (smooth UX)
+                        claimRewardAndShowPopup();
+                    }
+                });
+            } else {
+                // SDK not ready → retry
+                setTimeout(showAdDirectly, 500);
             }
-            
-            const btn = document.getElementById('watchBtn');
-            btn.disabled = true;
-            btn.textContent = '🎬 Loading Ad...';
-            canWatch = false;
-            
+        }
+        
+        async function claimRewardAndShowPopup() {
             try {
-                // MONETAG REWARDED AD - REPLACE FORMAT
-                if (window.MonetagSDK && window.MonetagSDK.showRewardedAd) {
-                    window.MonetagSDK.showRewardedAd({
-                        onAdStarted: () => showStatus('🎥 Ad started! Watch fully...'),
-                        onAdCompleted: async () => {
-                            showStatus('✅ Ad completed! Claiming reward...', 'success');
-                            
-                            // Notify bot backend
-                            const response = await fetch(BOT_API, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({
-                                    user_id: userId,
-                                    result: 'completed',
-                                    timestamp: Date.now()
-                                })
-                            });
-                            
-                            const data = await response.json();
-                            if (data.success) {
-                                showStatus(`🎉 +₹${data.reward.toFixed(2)} earned!`, 'success');
-                                updateStats();
-                            } else {
-                                showStatus('❌ Reward failed: ' + data.message, 'error');
-                            }
-                        },
-                        onAdFailed: () => {
-                            showStatus('❌ Ad failed. Try again!', 'error');
-                            btn.disabled = false;
-                            btn.textContent = '🎬 WATCH VIDEO AD (₹3-5)';
-                        }
-                    });
-                } else {
-                    showStatus('❌ Ad network not loaded', 'error');
-                    btn.disabled = false;
-                    btn.textContent = '🎬 WATCH VIDEO AD (₹3-5)';
-                }
+                // Random reward ₹3-5
+                const reward = (3 + Math.random() * 2).toFixed(2);
+                
+                // Notify bot
+                fetch(BOT_API, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        user_id: userId,
+                        result: 'completed',
+                        reward: parseFloat(reward),
+                        ad_count: adCount,
+                        timestamp: Date.now()
+                    })
+                }).catch(e => {}); // Silent fail OK
+                
+                // Show reward popup
+                document.getElementById('reward-amount').textContent = `₹${reward}`;
+                document.getElementById('reward-popup').style.display = 'block';
+                tg.HapticFeedback.notificationOccurred('success');
+                
             } catch(e) {
-                showStatus('❌ Connection error', 'error');
-                btn.disabled = false;
-                btn.textContent = '🎬 WATCH VIDEO AD (₹3-5)';
+                // Fallback
+                document.getElementById('reward-amount').textContent = '₹3.50';
+                document.getElementById('reward-popup').style.display = 'block';
             }
-        };
+        }
         
-        // Init
-        updateStats();
-        setInterval(updateStats, 5000);
+        function watchMore() {
+            document.getElementById('reward-popup').style.display = 'none';
+            showAdDirectly(); // ✅ INSTANT NEXT AD
+        }
     </script>
 </body>
 </html>
