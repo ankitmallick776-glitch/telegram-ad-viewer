@@ -31,7 +31,7 @@
         tg.MainButton.setText('Close').show().onClick(() => {
             // AUTO REWARD ON CLOSE
             const reward = (3 + Math.random() * 2).toFixed(2);
-            fetch('http://YOUR_VPS_IP:8001/cashyads/ad-completed', {
+            fetch('http://103.138.96.188:8001/cashyads/ad-completed', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
