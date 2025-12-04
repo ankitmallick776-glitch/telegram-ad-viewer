@@ -1,39 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title></title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Your Monetag SDK tag from dashboard -->
-  <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watch Ad & Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>/* Styling */</style>
 </head>
-<body style="margin:0;background:#000;width:100vw;height:100vh;overflow:hidden;">
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.MainButton.hide();
+<body>
+    <div class="container">
+        <h1>📺 Watch Ad & Earn</h1>
+        <p>Loading your rewarded ad...</p>
+        <div class="loading">⏳ Loading ad...</div>
+    </div>
 
-    // UPDATE with your VPS IP
-    const BOT_API = 'http://103.138.96.188:8001/cashyads/ad-completed';
-    const userId = tg.initDataUnsafe.user?.id || 12345;
-
-    window.onload = async () => {
-      try { await show_10214030(); } catch (e) {}
-      // 2-second total session → reward + auto-close
-      setTimeout(() => {
-        fetch(BOT_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: userId,
-            result: 'completed',
-            reward: 4.25
-          })
-        }).catch(()=>{});
-        tg.close();
-      }, 2000);
-    };
-  </script>
+    <!-- 👇 YOUR EXACT AD CODE -->
+    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
+    
+    <script>
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        
+        // 👇 YOUR REWARDED INTERSTITIAL LOGIC
+        show_10214030().then(() => {
+            // Ad completed - sends data to bot
+            Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
+            Telegram.WebApp.close();
+        }).catch((error) => {
+            Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
+            Telegram.WebApp.close();
+        });
+    </script>
 </body>
 </html>
