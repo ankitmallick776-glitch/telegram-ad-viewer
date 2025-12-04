@@ -3,33 +3,72 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Watch Ad & Earn</title>
+    <title>CashyAds2 - Watch & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>/* Styling */</style>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            color: white; text-align: center; 
+        }
+        .container { 
+            max-width: 400px; 
+            background: rgba(255,255,255,0.1); 
+            backdrop-filter: blur(10px); 
+            border-radius: 20px; 
+            padding: 40px 20px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3); 
+        }
+        button { background: #00d4aa; color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; margin: 10px; }
+        .loading { font-size: 18px; color: #ffd700; }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>📺 Watch Ad & Earn</h1>
-        <p>Loading your rewarded ad...</p>
-        <div class="loading">⏳ Loading ad...</div>
+        <h1>📺 CashyAds2</h1>
+        <p>Watch ad to earn 3-5 Rs!</p>
+        <div class="loading" id="status">⏳ Loading rewarded ad...</div>
+        <button id="closeBtn" onclick="closeApp(false)" style="display:none;">Close</button>
     </div>
 
-    <!-- 👇 YOUR EXACT AD CODE -->
+    <!-- YOUR MONETAG AD -->
     <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
     
     <script>
+        console.log("🚀 CashyAds2 Mini App loaded");
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
+        Telegram.WebApp.MainButton.setText("Claim Reward").show().onClick(claimReward);
         
-        // 👇 YOUR REWARDED INTERSTITIAL LOGIC
+        let adStatus = document.getElementById('status');
+        
+        // YOUR AD CODE
         show_10214030().then(() => {
-            // Ad completed - sends data to bot
-            Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
-            Telegram.WebApp.close();
+            console.log("✅ AD COMPLETED!");
+            adStatus.innerHTML = "✅ Ad completed! <br>Click Claim Reward!";
+            Telegram.WebApp.MainButton.setParams({color: '#00d4aa'});
+            document.getElementById('closeBtn').style.display = 'block';
         }).catch((error) => {
+            console.error("❌ AD FAILED:", error);
+            adStatus.innerHTML = "❌ Ad failed. Try again!";
+            closeApp(false);
+        });
+        
+        function claimReward() {
+            console.log("🎁 Claiming reward...");
+            Telegram.WebApp.sendData(JSON.stringify({ad_completed: true, reward: true}));
+            Telegram.WebApp.close();
+        }
+        
+        function closeApp(success) {
+            console.log("❌ Closing app:", success);
             Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
             Telegram.WebApp.close();
-        });
+        }
     </script>
 </body>
 </html>
