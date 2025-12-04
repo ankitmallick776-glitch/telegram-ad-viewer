@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CashyAds2 - Watch & Earn</title>
+    <title>CashyAds2 - Claim Reward</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { 
@@ -20,52 +20,29 @@
         }
         .status { font-size: 18px; margin: 20px 0; padding: 15px; border-radius: 10px; }
         .success { background: rgba(0,255,0,0.2); }
-        .loading { background: rgba(255,193,7,0.3); }
-        .error { background: rgba(255,0,0,0.2); }
+        button { background: #00d4aa; color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: bold; cursor: pointer; margin: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📺 CashyAds2</h1>
-        <p>Watch complete ad → Claim 3-5 Rs!</p>
-        <div id="status" class="status loading">⏳ Loading rewarded ad...</div>
+        <p>Ready to earn 3-5 Rs!</p>
+        <div id="status" class="status success">✅ Ready! Click to claim your reward!</div>
     </div>
 
-    <!-- YOUR MONETAG AD -->
-    <script src='//libtl.com/sdk.js' data-zone='10214030' data-sdk='show_10214030'></script>
-    
     <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         
-        const status = document.getElementById('status');
-        
-        // Show ad
-        show_10214030().then(() => {
-            console.log("✅ AD COMPLETED!");
-            status.innerHTML = "✅ Ad watched successfully!<br>👇 Click to claim your reward!";
-            status.className = "status success";
-            
-            // SHOW CLAIM REWARD BUTTON
-            Telegram.WebApp.MainButton.setText("🎁 CLAIM REWARD (3-5 Rs)").show()
-                .setParams({color: '#00d4aa', text_color: 'white'})
-                .onClick(claimReward);
-                
-        }).catch((error) => {
-            console.error("❌ AD ERROR:", error);
-            status.innerHTML = "❌ Ad failed. Try again later!";
-            status.className = "status error";
-            Telegram.WebApp.MainButton.setText("❌ Try Again").onClick(retryAd);
-        });
+        // IMMEDIATE CLAIM BUTTON - NO AD CHECK!
+        Telegram.WebApp.MainButton.setText("🎁 CLAIM REWARD (3-5 Rs)").show()
+            .setParams({color: '#00d4aa', text_color: 'white'})
+            .onClick(claimReward);
         
         function claimReward() {
-            console.log("🎁 CLAIMING REWARD!");
-            Telegram.WebApp.sendData(JSON.stringify({ad_completed: true, claimed: true}));
+            console.log("🎁 CLAIM REWARD CLICKED!");
+            Telegram.WebApp.sendData(JSON.stringify({claimed: true, reward: true}));
             Telegram.WebApp.close();
-        }
-        
-        function retryAd() {
-            location.reload();
         }
     </script>
 </body>
