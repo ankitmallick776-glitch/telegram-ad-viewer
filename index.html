@@ -1,626 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Watch & Earn – Cashyads</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watch Ad & Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- ═══════════════════════════════════════════════════
-       ADSGRAM SDK  (primary network)
-       Get your Block ID from https://t.me/AdsGramBot
-  ════════════════════════════════════════════════════ -->
-  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <!-- 👇 RICHADS SDK INITIALIZATION 👇 -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+      window.TelegramAdsController = new TelegramAdsController();
+      window.TelegramAdsController.initialize({
+        pubId: "1007116",
+        appId: "6894",
+      });
+    </script>
 
-  <!-- ═══════════════════════════════════════════════════
-       MONETAG SDK  (fallback network — your existing v1)
-  ════════════════════════════════════════════════════ -->
-  <script src="//libtl.com/sdk.js"
-          data-zone="10214030"
-          data-sdk="show_10214030"></script>
-
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:      #0a0a0f;
-      --surface: #13131a;
-      --border:  #1e1e2e;
-      --gold:    #f5c542;
-      --gold2:   #ffdd77;
-      --green:   #22c55e;
-      --red:     #ef4444;
-      --text:    #e8e8f0;
-      --muted:   #6b6b80;
-      --radius:  18px;
-    }
-
-    html, body {
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── Screens ──────────────────────────────── */
-    .screen {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 28px 24px;
-      gap: 18px;
-      transition: opacity .3s ease, transform .3s ease;
-    }
-    .screen.hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(.96);
-    }
-
-    /* ── Coin ─────────────────────────────────── */
-    .coin {
-      width: 88px;
-      height: 88px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, var(--gold2), var(--gold) 60%, #c9930a);
-      box-shadow: 0 0 0 4px #c9930a44, 0 8px 32px #f5c54255;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 42px;
-      animation: coinFloat 3s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-    @keyframes coinFloat {
-      0%,100% { transform: translateY(0) rotate(-3deg); }
-      50%      { transform: translateY(-10px) rotate(3deg); }
-    }
-
-    /* ── Text ─────────────────────────────────── */
-    .title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -.3px;
-      text-align: center;
-    }
-    .subtitle {
-      font-size: 14px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.55;
-      max-width: 290px;
-    }
-
-    /* ── Reward pill ──────────────────────────── */
-    .reward-pill {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #1a1a0a;
-      border: 1px solid #f5c54222;
-      border-radius: 999px;
-      padding: 10px 20px;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--gold);
-    }
-    .reward-pill .range {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 400;
-    }
-
-    /* ── Progress bar ─────────────────────────── */
-    .progress-wrap {
-      width: 100%;
-      max-width: 320px;
-      background: var(--border);
-      border-radius: 999px;
-      height: 6px;
-      overflow: hidden;
-    }
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--gold), var(--gold2));
-      border-radius: 999px;
-      transition: width .3s linear;
-    }
-
-    /* ── Status ───────────────────────────────── */
-    .status {
-      font-size: 13px;
-      color: var(--muted);
-      text-align: center;
-      min-height: 18px;
-    }
-    .status.error   { color: var(--red); }
-    .status.success { color: var(--green); }
-
-    /* ── Buttons ──────────────────────────────── */
-    .btn {
-      width: 100%;
-      max-width: 320px;
-      padding: 16px 24px;
-      border-radius: var(--radius);
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: .2px;
-      transition: transform .15s, opacity .15s, box-shadow .15s;
-      position: relative;
-      overflow: hidden;
-    }
-    .btn:active { transform: scale(.97); }
-    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--gold) 0%, #e0a800 100%);
-      color: #0a0a00;
-      box-shadow: 0 4px 20px #f5c54240;
-    }
-    .btn-primary::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, #fff3 0%, transparent 60%);
-      pointer-events: none;
-    }
-    .btn-primary:not(:disabled):hover { box-shadow: 0 6px 28px #f5c54260; }
-
-    .btn-secondary {
-      background: var(--surface);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    /* ── Spinner ──────────────────────────────── */
-    .spinner {
-      width: 44px;
-      height: 44px;
-      border: 3px solid var(--border);
-      border-top-color: var(--gold);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Network badge ────────────────────────── */
-    .badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-    .dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-
-    /* ── Result icons ─────────────────────────── */
-    .result-icon {
-      font-size: 66px;
-      animation: popIn .5s cubic-bezier(.34,1.56,.64,1) both;
-    }
-    @keyframes popIn {
-      from { transform: scale(0); opacity: 0; }
-      to   { transform: scale(1); opacity: 1; }
-    }
-
-    /* ── Stars burst ──────────────────────────── */
-    .stars-wrap {
-      position: fixed; inset: 0;
-      pointer-events: none; overflow: hidden;
-      display: none;
-    }
-    .stars-wrap.active { display: block; }
-    .star {
-      position: absolute;
-      animation: starFly 1.3s ease-out forwards;
-    }
-    @keyframes starFly {
-      from { opacity: 1; transform: translateY(0) scale(1); }
-      to   { opacity: 0; transform: translateY(-220px) scale(.4); }
-    }
-  </style>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; }
+        .coin { font-size: 50px; margin-bottom: 10px; }
+        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 20px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
+        .btn:disabled { background: #333; color: #888; cursor: not-allowed; box-shadow: none; }
+        .loading { color: #f5c542; font-size: 15px; margin-top: 15px; display: none; font-weight: bold; }
+        .subtitle { color: #888; font-size: 14px; margin-top: 10px; }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="coin">🪙</div>
+        <h1>Watch Ad & Earn</h1>
+        <p class="subtitle">Watch a short sponsored ad to earn coins instantly.</p>
+        
+        <button id="ad-btn" class="btn" onclick="startRichAd()">▶ Watch Ad Now</button>
+        <div id="loading" class="loading">⏳ Loading ad... Please wait.</div>
+    </div>
 
-<!-- ══════════════════════════════════════════════
-     SCREEN 1 — Ready
-══════════════════════════════════════════════ -->
-<div class="screen" id="screen-ready">
-  <div class="coin">🪙</div>
+    <script>
+        // Tell Telegram the app is ready to display
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        
+        function startRichAd() {
+            // Disable button so users don't spam click it
+            const btn = document.getElementById('ad-btn');
+            const loading = document.getElementById('loading');
+            btn.disabled = true;
+            loading.style.display = 'block';
 
-  <div class="title">Watch &amp; Earn Coins</div>
+            // Make sure the RichAds SDK loaded properly from their server
+            if (window.TelegramAdsController && typeof window.TelegramAdsController.show === 'function') {
+                
+                // Trigger the RichAds Video/Interstitial
+                window.TelegramAdsController.show()
+                    .then(() => {
+                        // Success! The user watched the ad. Send data back to Python bot.
+                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
+                        Telegram.WebApp.close();
+                    })
+                    .catch((error) => {
+                        // User skipped the ad, or no ad was available
+                        console.error("Ad failed or skipped:", error);
+                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
+                        Telegram.WebApp.close();
+                    });
 
-  <div class="reward-pill">
-    🪙 Earn <strong>300 – 500 coins</strong>
-    &nbsp;<span class="range">≈ ₹3 – ₹5</span>
-  </div>
-
-  <div class="subtitle">
-    Watch a short ad all the way through.
-    Coins are added to your balance the moment it finishes.
-  </div>
-
-  <button class="btn btn-primary" id="btn-watch" onclick="startAd()">
-    ▶&nbsp; Watch Ad Now
-  </button>
-
-  <div class="status" id="status-ready"></div>
-
-  <div class="badge">
-    <div class="dot"></div>
-    Powered by AdsGram
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════════════
-     SCREEN 2 — Loading
-══════════════════════════════════════════════ -->
-<div class="screen hidden" id="screen-loading">
-  <div class="spinner"></div>
-  <div class="title">Loading Ad…</div>
-  <div class="subtitle">Just a second, fetching the best available ad for you.</div>
-
-  <div class="progress-wrap">
-    <div class="progress-bar" id="progress-bar"></div>
-  </div>
-
-  <div class="status" id="status-loading">Connecting…</div>
-</div>
-
-
-<!-- ══════════════════════════════════════════════
-     SCREEN 3 — Success
-══════════════════════════════════════════════ -->
-<div class="screen hidden" id="screen-success">
-  <div class="result-icon">🎉</div>
-  <div class="title">Coins Earned!</div>
-  <div style="font-size:34px;font-weight:800;color:var(--gold);letter-spacing:-1px">
-    🪙 300 – 500 coins
-  </div>
-  <div class="subtitle">Added to your balance! Keep watching ads to earn more.</div>
-  <div class="status success">
-    Closing in <span id="close-countdown">3</span>s…
-  </div>
-</div>
-
-
-<!-- ══════════════════════════════════════════════
-     SCREEN 4 — Error / Skipped
-══════════════════════════════════════════════ -->
-<div class="screen hidden" id="screen-error">
-  <div class="result-icon">😔</div>
-  <div class="title">Ad Not Completed</div>
-  <div class="subtitle" id="error-msg">
-    Watch the full ad to earn coins. It only takes a few seconds!
-  </div>
-  <button class="btn btn-primary" onclick="retryAd()">
-    🔄 Try Again
-  </button>
-  <button class="btn btn-secondary" onclick="tg.close()">
-    Close
-  </button>
-</div>
-
-
-<!-- Stars overlay -->
-<div class="stars-wrap" id="stars-wrap"></div>
-
-
-<script>
-// ════════════════════════════════════════════════════
-//  ⚙️  CONFIGURATION — Change these values
-// ════════════════════════════════════════════════════
-
-// Your AdsGram Block ID from https://t.me/AdsGramBot
-// Go to: My Apps → select your app → copy Block ID
-const ADSGRAM_BLOCK_ID = "int-26578";   // ← REPLACE THIS
-
-// Set to true to keep Monetag as fallback when AdsGram has no fill
-const USE_MONETAG_FALLBACK = true;
-
-// Set to true during testing (shows a test ad without real impressions)
-const DEBUG_MODE = false;
-
-// ════════════════════════════════════════════════════
-//  TELEGRAM INIT
-//
-//  IMPORTANT: AdsGram reads window.Telegram.WebApp.initData
-//  internally when you call Adsgram.init(). If initData is
-//  empty (page opened in browser, or init() called too early)
-//  it throws "unable to retrieve launch parameters".
-//
-//  Fix: call tg.ready() first, wait one tick via tgReady
-//  promise, THEN call Adsgram.init() inside showAdsGramAd().
-// ════════════════════════════════════════════════════
-const tg = window.Telegram.WebApp;
-
-// Promise that resolves after Telegram has injected initData
-const tgReady = new Promise(resolve => {
-  tg.ready();          // tells Telegram the Mini App is loaded
-  setTimeout(resolve, 50);  // give Telegram one tick to populate initData
-});
-
-tg.expand();
-tg.disableClosingConfirmation();
-
-// Safe to set up UI handlers immediately
-try { tg.BackButton.show(); } catch(e) {}
-try {
-  tg.BackButton.onClick(() => {
-    const onReady = !document.getElementById('screen-ready').classList.contains('hidden');
-    if (onReady) tg.close();
-    else retryAd();
-  });
-} catch(e) {}
-
-// ════════════════════════════════════════════════════
-//  SCREEN HELPERS
-// ════════════════════════════════════════════════════
-const SCREENS = ['screen-ready','screen-loading','screen-success','screen-error'];
-
-function showScreen(id) {
-  SCREENS.forEach(s => {
-    document.getElementById(s).classList.toggle('hidden', s !== id);
-  });
-}
-
-function setStatus(screenSuffix, msg, cls = '') {
-  const el = document.getElementById('status-' + screenSuffix);
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'status ' + cls;
-}
-
-// ════════════════════════════════════════════════════
-//  PROGRESS BAR
-// ════════════════════════════════════════════════════
-let progressTimer = null;
-
-function startProgress() {
-  const bar = document.getElementById('progress-bar');
-  bar.style.transition = 'none';
-  bar.style.width = '0%';
-  let pct = 0;
-  clearInterval(progressTimer);
-  // eslint-disable-next-line no-return-assign
-  progressTimer = setInterval(() => {
-    pct += pct < 70 ? 2 : 0.4;
-    if (pct >= 99) { clearInterval(progressTimer); pct = 99; }
-    bar.style.transition = 'width .3s linear';
-    bar.style.width = pct + '%';
-  }, 120);
-}
-
-function finishProgress() {
-  clearInterval(progressTimer);
-  const bar = document.getElementById('progress-bar');
-  bar.style.transition = 'width .2s ease';
-  bar.style.width = '100%';
-}
-
-// ════════════════════════════════════════════════════
-//  STARS BURST
-// ════════════════════════════════════════════════════
-function burstStars() {
-  const wrap = document.getElementById('stars-wrap');
-  wrap.innerHTML = '';
-  wrap.classList.add('active');
-  const emojis = ['🪙','⭐','✨','💛','🎊'];
-  for (let i = 0; i < 20; i++) {
-    const s = document.createElement('span');
-    s.className = 'star';
-    s.textContent = emojis[i % emojis.length];
-    s.style.cssText = `
-      left: ${Math.random() * 100}vw;
-      top: ${55 + Math.random() * 35}vh;
-      font-size: ${14 + Math.random() * 18}px;
-      animation-delay: ${Math.random() * .6}s;
-    `;
-    wrap.appendChild(s);
-  }
-  setTimeout(() => wrap.classList.remove('active'), 2200);
-}
-
-// ════════════════════════════════════════════════════
-//  SEND RESULT TO BOT
-//  The bot's web_app_data handler checks ad_completed:
-//  true  → calls db.reward_ad_watch() → adds coins
-//  false → shows "Ad cancelled" message
-// ════════════════════════════════════════════════════
-function sendResult(completed) {
-  finishProgress();
-  tg.sendData(JSON.stringify({ ad_completed: completed }));
-}
-
-// ════════════════════════════════════════════════════
-//  SUCCESS SCREEN + AUTO-CLOSE
-// ════════════════════════════════════════════════════
-function showSuccess() {
-  burstStars();
-  showScreen('screen-success');
-  let n = 3;
-  document.getElementById('close-countdown').textContent = n;
-  const t = setInterval(() => {
-    n--;
-    const el = document.getElementById('close-countdown');
-    if (el) el.textContent = n;
-    if (n <= 0) {
-      clearInterval(t);
-      sendResult(true);       // ← tells the bot: reward this user
-      setTimeout(() => tg.close(), 500);
-    }
-  }, 1000);
-}
-
-function showError(msg) {
-  if (msg) document.getElementById('error-msg').textContent = msg;
-  showScreen('screen-error');
-}
-
-// ════════════════════════════════════════════════════
-//  ADSGRAM — PRIMARY NETWORK
-//
-//  Docs: https://docs.adsgram.ai/for-publishers/rewarded-ads
-//
-//  Common errors:
-//  "unable to retrieve launch parameters" → page opened
-//    outside Telegram, or Adsgram.init() called before
-//    tg.ready() populated initData. Fixed by awaiting
-//    tgReady before calling init().
-//  "block not found" → wrong or placeholder blockId
-// ════════════════════════════════════════════════════
-async function showAdsGramAd() {
-  // 1. Block ID must be set
-  if (!ADSGRAM_BLOCK_ID || ADSGRAM_BLOCK_ID === 'YOUR_BLOCK_ID') {
-    throw new Error('no_block_id');
-  }
-
-  // 2. SDK must be loaded
-  if (!window.Adsgram) {
-    throw new Error('AdsGram SDK not loaded');
-  }
-
-  // 3. Wait for Telegram initData to be populated
-  //    This is the fix for "unable to retrieve launch parameters"
-  await tgReady;
-
-  // 4. Verify initData exists (will be empty if opened in browser)
-  if (!tg.initData || tg.initData.length === 0) {
-    throw new Error('no_init_data');
-  }
-
-  const controller = await window.Adsgram.init({
-    blockId: String(ADSGRAM_BLOCK_ID),
-    debug:   DEBUG_MODE,
-    debugBannerType: 'FullscreenMedia',
-  });
-
-  return new Promise((resolve, reject) => {
-    controller.show()
-      .then(result => {
-        if (result && result.done) {
-          resolve('adsgram_ok');
-        } else {
-          reject(new Error('skipped'));
+            } else {
+                // Failsafe in case of a bad internet connection
+                alert("Ad network is still connecting. Please try again in 5 seconds!");
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
         }
-      })
-      .catch(err => {
-        reject(err);
-      });
-  });
-}
-
-// ════════════════════════════════════════════════════
-//  MONETAG — FALLBACK NETWORK  (your existing v1 code)
-// ════════════════════════════════════════════════════
-async function showMonetagAd() {
-  if (typeof show_10214030 === 'undefined') {
-    throw new Error('Monetag SDK not available');
-  }
-  return new Promise((resolve, reject) => {
-    show_10214030()
-      .then(() => resolve('monetag_ok'))
-      .catch(err => reject(err));
-  });
-}
-
-// ════════════════════════════════════════════════════
-//  MAIN AD FLOW
-//  Priority: AdsGram → Monetag fallback → error screen
-// ════════════════════════════════════════════════════
-let isAdRunning = false;
-
-async function startAd() {
-  if (isAdRunning) return;
-  isAdRunning = true;
-
-  const btn = document.getElementById('btn-watch');
-  btn.disabled = true;
-
-  showScreen('screen-loading');
-  setStatus('loading', 'Connecting to ad network…');
-  startProgress();
-
-  // ── Step 1: Try AdsGram ─────────────────────────
-  try {
-    setStatus('loading', 'Loading AdsGram ad…');
-    await showAdsGramAd();
-    console.log('✅ AdsGram ad completed');
-    showSuccess();
-    return;
-
-  } catch (e1) {
-    const msg = e1.message || String(e1);
-    console.warn('⚠️ AdsGram error:', msg);
-
-    // User skipped → no fallback, ask them to watch fully
-    if (msg === 'skipped') {
-      isAdRunning = false;
-      btn.disabled = false;
-      showError('Watch the whole ad to earn coins — it only takes a few seconds!');
-      return;
-    }
-
-    // Block ID not set → skip fallback, show config warning
-    if (msg === 'no_block_id') {
-      console.warn('⚠️ ADSGRAM_BLOCK_ID not set — falling back to Monetag');
-      // fall through to Monetag
-    }
-
-    // Opened outside Telegram → both SDKs will fail, show friendly message
-    if (msg === 'no_init_data') {
-      isAdRunning = false;
-      btn.disabled = false;
-      showScreen('screen-ready');
-      setStatus('ready', 'Open this inside Telegram to watch ads.', 'error');
-      return;
-    }
-
-    // All other errors (no fill, network, etc.) → fall through to Monetag
-  }
-
-  // ── Step 2: Monetag fallback ────────────────────
-  if (USE_MONETAG_FALLBACK) {
-    try {
-      setStatus('loading', 'Trying backup ad network…');
-      await showMonetagAd();
-      console.log('✅ Monetag fallback completed');
-      showSuccess();
-      return;
-
-    } catch (e2) {
-      console.warn('⚠️ Monetag fallback:', e2.message || e2);
-    }
-  }
-
-  // ── Step 3: Both failed ─────────────────────────
-  isAdRunning = false;
-  btn.disabled = false;
-  showScreen('screen-ready');
-  setStatus('ready', 'No ads available right now — try again in a moment.', 'error');
-}
-
-function retryAd() {
-  isAdRunning = false;
-  document.getElementById('btn-watch').disabled = false;
-  showScreen('screen-ready');
-  setStatus('ready', '');
-}
-</script>
+    </script>
 </body>
 </html>
