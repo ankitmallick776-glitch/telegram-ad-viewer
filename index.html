@@ -1,76 +1,35 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Watch Ad & Earn</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <!-- 👇 RICHADS SDK INITIALIZATION 👇 -->
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-    <script>
-      window.TelegramAdsController = new TelegramAdsController();
-      window.TelegramAdsController.initialize({
-        pubId: "1007116",
-        appId: "6894",
-      });
-    </script>
-
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; }
-        .coin { font-size: 50px; margin-bottom: 10px; }
-        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 20px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
-        .btn:disabled { background: #333; color: #888; cursor: not-allowed; box-shadow: none; }
-        .loading { color: #f5c542; font-size: 15px; margin-top: 15px; display: none; font-weight: bold; }
-        .subtitle { color: #888; font-size: 14px; margin-top: 10px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="coin">🪙</div>
-        <h1>Watch Ad & Earn</h1>
-        <p class="subtitle">Watch a short sponsored ad to earn coins instantly.</p>
-        
-        <button id="ad-btn" class="btn" onclick="startRichAd()">▶ Watch Ad Now</button>
-        <div id="loading" class="loading">⏳ Loading ad... Please wait.</div>
-    </div>
-
-    <script>
-        // Tell Telegram the app is ready to display
+<script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         
         function startRichAd() {
-            // Disable button so users don't spam click it
-            const btn = document.getElementById('ad-btn');
-            const loading = document.getElementById('loading');
-            btn.disabled = true;
-            loading.style.display = 'block';
-
-            // Make sure the RichAds SDK loaded properly from their server
-            if (window.TelegramAdsController && typeof window.TelegramAdsController.show === 'function') {
-                
-                // Trigger the RichAds Video/Interstitial
-                window.TelegramAdsController.show()
-                    .then(() => {
-                        // Success! The user watched the ad. Send data back to Python bot.
-                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
-                        Telegram.WebApp.close();
-                    })
-                    .catch((error) => {
-                        // User skipped the ad, or no ad was available
-                        console.error("Ad failed or skipped:", error);
-                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
-                        Telegram.WebApp.close();
-                    });
-
-            } else {
-                // Failsafe in case of a bad internet connection
-                alert("Ad network is still connecting. Please try again in 5 seconds!");
-                btn.disabled = false;
-                loading.style.display = 'none';
+            if (!window.TelegramAdsController) {
+                alert("SDK completely failed to load. Check AdBlocker/DNS.");
+                return;
             }
+
+            let commands = [];
+            
+            // X-Ray the SDK to find all available functions
+            for (let prop in window.TelegramAdsController) {
+                if (typeof window.TelegramAdsController[prop] === 'function') {
+                    commands.push(prop);
+                }
+            }
+            
+            // Catch hidden class methods
+            let proto = Object.getPrototypeOf(window.TelegramAdsController);
+            if (proto) {
+                Object.getOwnPropertyNames(proto).forEach(prop => {
+                    if (typeof window.TelegramAdsController[prop] === 'function' && prop !== 'constructor' && !commands.includes(prop)) {
+                        commands.push(prop);
+                    }
+                });
+            }
+
+            alert("RichAds Commands: " + commands.join(", "));
+            
+            // Reset button
+            document.getElementById('ad-btn').disabled = false;
         }
     </script>
-</body>
-</html>
