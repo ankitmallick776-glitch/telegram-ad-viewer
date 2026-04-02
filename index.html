@@ -17,71 +17,129 @@
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; }
-        .coin { font-size: 50px; margin-bottom: 10px; }
-        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 20px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
-        .btn:active { transform: scale(0.98); }
-        .subtitle { color: #888; font-size: 14px; margin-top: 10px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #13131a; 
+            color: white; 
+            text-align: center; 
+            padding: 40px 20px; 
+            margin: 0;
+            overflow: hidden;
+        }
+        .coin { font-size: 60px; margin-bottom: 15px; animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .btn { 
+            background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); 
+            color: black; 
+            border: none; 
+            padding: 18px 30px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%; 
+            max-width: 300px; 
+            margin-top: 30px; 
+            box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); 
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { 
+            background: #2a2a35; 
+            color: #666; 
+            cursor: not-allowed; 
+            box-shadow: none; 
+        }
+        .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
         
-        /* Debug Box Styling */
-        #debug-box { display: none; background: #1e1e2e; border: 1px solid #f5c542; padding: 15px; margin-top: 30px; border-radius: 10px; text-align: left; font-family: monospace; color: #a6accd; word-wrap: break-word; line-height: 1.5; }
-        .highlight { color: #22c55e; font-weight: bold; }
+        /* Timer styling */
+        #timer-container {
+            display: none;
+            margin-top: 30px;
+        }
+        .progress-bar {
+            width: 100%;
+            max-width: 300px;
+            height: 8px;
+            background: #2a2a35;
+            border-radius: 10px;
+            margin: 15px auto;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #22c55e;
+            transition: width 1s linear;
+        }
+        .time-text { font-size: 18px; font-weight: bold; color: #f5c542; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="coin">🪙</div>
-        <h1>Ad Setup Mode</h1>
-        <p class="subtitle">Click the button below to scan the RichAds SDK and find the trigger command.</p>
+        <h1>Watch Ad & Earn</h1>
+        <p class="subtitle">Click the button below to view the sponsor ad. Keep this page open until the timer finishes!</p>
         
-        <button id="ad-btn" class="btn" onclick="scanSDK()">🔍 Scan SDK</button>
+        <button id="ad-btn" class="btn" onclick="startTimer()">▶ Start Ad & Timer</button>
         
-        <!-- The X-Ray Results will appear here -->
-        <div id="debug-box">
-            <h3 style="color: white; margin-top: 0;">SDK Commands Found:</h3>
-            <div id="commands-list">Scanning...</div>
-            <p style="color: #f5c542; margin-bottom: 0; margin-top: 15px; font-family: sans-serif;">👉 Copy the green text above and send it to me!</p>
+        <div id="timer-container">
+            <p class="subtitle">Verifying ad view...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="time-text"><span id="time-left">15</span> seconds left</div>
         </div>
     </div>
 
     <script>
+        // Initialize Telegram Web App
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         
-        function scanSDK() {
-            const debugBox = document.getElementById('debug-box');
-            const commandsList = document.getElementById('commands-list');
-            debugBox.style.display = 'block';
+        // Disable swipe-to-close so they don't accidentally exit
+        if (Telegram.WebApp.disableVerticalSwipes) {
+            Telegram.WebApp.disableVerticalSwipes();
+        }
 
-            if (!window.TelegramAdsController) {
-                commandsList.innerHTML = "<span style='color: #ef4444;'>Error: window.TelegramAdsController is undefined. The SDK script failed to load.</span>";
-                return;
-            }
-
-            let commands = [];
+        function startTimer() {
+            const btn = document.getElementById('ad-btn');
+            const timerContainer = document.getElementById('timer-container');
+            const timeLeftSpan = document.getElementById('time-left');
+            const progressFill = document.getElementById('progress-fill');
             
-            // 1. Scan the main object
-            for (let prop in window.TelegramAdsController) {
-                if (typeof window.TelegramAdsController[prop] === 'function') {
-                    commands.push(prop);
+            // 1. Hide button and show timer
+            btn.style.display = 'none';
+            timerContainer.style.display = 'block';
+            
+            // 2. Set the countdown total (15 seconds)
+            const totalSeconds = 15;
+            let currentSeconds = totalSeconds;
+
+            // Optional: Try to force the RichAds SDK to show just in case it responds to .show()
+            try { if (window.TelegramAdsController && window.TelegramAdsController.show) window.TelegramAdsController.show(); } catch(e) {}
+            
+            // 3. Start the interval loop
+            const interval = setInterval(() => {
+                currentSeconds--;
+                timeLeftSpan.innerText = currentSeconds;
+                
+                // Update green progress bar visually
+                const percentage = ((totalSeconds - currentSeconds) / totalSeconds) * 100;
+                progressFill.style.width = percentage + '%';
+                
+                // 4. When it hits zero, reward the user
+                if (currentSeconds <= 0) {
+                    clearInterval(interval);
+                    
+                    // Tell Python bot the ad was successfully watched!
+                    Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
+                    Telegram.WebApp.close();
                 }
-            }
-            
-            // 2. Scan the prototype chain (where classes hide their methods)
-            let proto = Object.getPrototypeOf(window.TelegramAdsController);
-            if (proto) {
-                Object.getOwnPropertyNames(proto).forEach(prop => {
-                    if (typeof window.TelegramAdsController[prop] === 'function' && prop !== 'constructor' && !commands.includes(prop)) {
-                        commands.push(prop);
-                    }
-                });
-            }
-
-            if (commands.length === 0) {
-                commandsList.innerHTML = "No functions found in the SDK object.";
-            } else {
-                commandsList.innerHTML = "<span class='highlight'>" + commands.join(", ") + "</span>";
-            }
+            }, 1000); // Runs every 1000 milliseconds (1 second)
         }
     </script>
 </body>
