@@ -4,7 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Watch Ad & Earn</title>
+    <!-- Step 1: Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Step 2: RichAds SDK -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -16,13 +19,9 @@
             align-items: center;
             justify-content: center;
         }
-        .container {
-            text-align: center;
-            padding: 2rem;
-        }
+        .container { text-align: center; padding: 2rem; }
         h1 { font-size: 1.8rem; margin-bottom: 1rem; }
         p { color: #aaa; margin-bottom: 1rem; }
-        .loading { font-size: 1.2rem; }
         .status { margin-top: 1rem; font-size: 0.9rem; color: #f0a500; }
     </style>
 </head>
@@ -30,19 +29,8 @@
     <div class="container">
         <h1>📺 Watch Ad & Earn</h1>
         <p>Loading your rewarded ad...</p>
-        <div class="loading">⏳ Loading ad...</div>
-        <div class="status" id="status"></div>
+        <div class="status" id="status">⏳ Initializing...</div>
     </div>
-
-    <!-- ✅ RichAds SDK -->
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-    <script>
-        window.TelegramAdsController = new TelegramAdsController();
-        window.TelegramAdsController.initialize({
-            pubId: "1007116",
-            appId: "6894",
-        });
-    </script>
 
     <script>
         Telegram.WebApp.ready();
@@ -58,49 +46,29 @@
             Telegram.WebApp.close();
         }
 
-        // Wait for RichAds SDK to be ready, then show the ad
-        function tryShowAd() {
-            if (
-                window.TelegramAdsController &&
-                typeof window.TelegramAdsController.showAd === 'function'
-            ) {
-                statusEl.textContent = 'Ad ready, showing now...';
+        // Step 3: Initialize RichAds controller
+        const richadsController = new TelegramAdsController();
+        richadsController.initialize({
+            pubId: "1007116",   // ← your pubId
+            appId: "6894",      // ← your appId
+            debug: false        // set true to test with dummy ads
+        });
 
-                window.TelegramAdsController.showAd()
-                    .then(() => {
-                        // Ad watched successfully
-                        sendResult(true);
-                    })
-                    .catch((error) => {
-                        console.error('Ad error:', error);
-                        sendResult(false, error?.message || 'ad_error');
-                    });
+        statusEl.textContent = '▶️ Loading ad...';
 
-            } else if (
-                window.TelegramAdsController &&
-                typeof window.TelegramAdsController.show === 'function'
-            ) {
-                // Fallback: some SDK versions use .show() instead of .showAd()
-                statusEl.textContent = 'Ad ready, showing now...';
-
-                window.TelegramAdsController.show()
-                    .then(() => {
-                        sendResult(true);
-                    })
-                    .catch((error) => {
-                        console.error('Ad error:', error);
-                        sendResult(false, error?.message || 'ad_error');
-                    });
-
-            } else {
-                // SDK not ready yet, retry after short delay
-                statusEl.textContent = 'Waiting for ad SDK...';
-                setTimeout(tryShowAd, 500);
-            }
-        }
-
-        // Give SDK a moment to initialize before trying
-        setTimeout(tryShowAd, 800);
+        // Step 4: Trigger the ad
+        // Options: triggerInterstitialVideo() | triggerInterstitialBanner() | triggerNativeNotification()
+        richadsController.triggerInterstitialVideo()
+            .then((result) => {
+                // Ad completed — reward the user
+                console.log('Ad completed:', result);
+                sendResult(true);
+            })
+            .catch((result) => {
+                // Ad failed or was skipped
+                console.log('Ad failed/skipped:', result);
+                sendResult(false, result || 'ad_not_shown');
+            });
     </script>
 </body>
 </html>
