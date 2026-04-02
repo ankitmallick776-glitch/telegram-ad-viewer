@@ -1,23 +1,73 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watch Ad & Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- 👇 RICHADS SDK INITIALIZATION 👇 -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+      window.TelegramAdsController = new TelegramAdsController();
+      window.TelegramAdsController.initialize({
+        pubId: "1007116",
+        appId: "6894",
+      });
+    </script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; }
+        .coin { font-size: 50px; margin-bottom: 10px; }
+        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 20px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); }
+        .btn:active { transform: scale(0.98); }
+        .subtitle { color: #888; font-size: 14px; margin-top: 10px; }
+        
+        /* Debug Box Styling */
+        #debug-box { display: none; background: #1e1e2e; border: 1px solid #f5c542; padding: 15px; margin-top: 30px; border-radius: 10px; text-align: left; font-family: monospace; color: #a6accd; word-wrap: break-word; line-height: 1.5; }
+        .highlight { color: #22c55e; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="coin">🪙</div>
+        <h1>Ad Setup Mode</h1>
+        <p class="subtitle">Click the button below to scan the RichAds SDK and find the trigger command.</p>
+        
+        <button id="ad-btn" class="btn" onclick="scanSDK()">🔍 Scan SDK</button>
+        
+        <!-- The X-Ray Results will appear here -->
+        <div id="debug-box">
+            <h3 style="color: white; margin-top: 0;">SDK Commands Found:</h3>
+            <div id="commands-list">Scanning...</div>
+            <p style="color: #f5c542; margin-bottom: 0; margin-top: 15px; font-family: sans-serif;">👉 Copy the green text above and send it to me!</p>
+        </div>
+    </div>
+
+    <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         
-        function startRichAd() {
+        function scanSDK() {
+            const debugBox = document.getElementById('debug-box');
+            const commandsList = document.getElementById('commands-list');
+            debugBox.style.display = 'block';
+
             if (!window.TelegramAdsController) {
-                alert("SDK completely failed to load. Check AdBlocker/DNS.");
+                commandsList.innerHTML = "<span style='color: #ef4444;'>Error: window.TelegramAdsController is undefined. The SDK script failed to load.</span>";
                 return;
             }
 
             let commands = [];
             
-            // X-Ray the SDK to find all available functions
+            // 1. Scan the main object
             for (let prop in window.TelegramAdsController) {
                 if (typeof window.TelegramAdsController[prop] === 'function') {
                     commands.push(prop);
                 }
             }
             
-            // Catch hidden class methods
+            // 2. Scan the prototype chain (where classes hide their methods)
             let proto = Object.getPrototypeOf(window.TelegramAdsController);
             if (proto) {
                 Object.getOwnPropertyNames(proto).forEach(prop => {
@@ -27,9 +77,12 @@
                 });
             }
 
-            alert("RichAds Commands: " + commands.join(", "));
-            
-            // Reset button
-            document.getElementById('ad-btn').disabled = false;
+            if (commands.length === 0) {
+                commandsList.innerHTML = "No functions found in the SDK object.";
+            } else {
+                commandsList.innerHTML = "<span class='highlight'>" + commands.join(", ") + "</span>";
+            }
         }
     </script>
+</body>
+</html>
