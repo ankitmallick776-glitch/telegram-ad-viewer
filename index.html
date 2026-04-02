@@ -338,17 +338,35 @@ const DEBUG_MODE = false;
 
 // ════════════════════════════════════════════════════
 //  TELEGRAM INIT
+//
+//  IMPORTANT: AdsGram reads window.Telegram.WebApp.initData
+//  internally when you call Adsgram.init(). If initData is
+//  empty (page opened in browser, or init() called too early)
+//  it throws "unable to retrieve launch parameters".
+//
+//  Fix: call tg.ready() first, wait one tick via tgReady
+//  promise, THEN call Adsgram.init() inside showAdsGramAd().
 // ════════════════════════════════════════════════════
 const tg = window.Telegram.WebApp;
-tg.ready();
+
+// Promise that resolves after Telegram has injected initData
+const tgReady = new Promise(resolve => {
+  tg.ready();          // tells Telegram the Mini App is loaded
+  setTimeout(resolve, 50);  // give Telegram one tick to populate initData
+});
+
 tg.expand();
 tg.disableClosingConfirmation();
-tg.BackButton.show();
-tg.BackButton.onClick(() => {
-  const onReady = !document.getElementById('screen-ready').classList.contains('hidden');
-  if (onReady) tg.close();
-  else retryAd();
-});
+
+// Safe to set up UI handlers immediately
+try { tg.BackButton.show(); } catch(e) {}
+try {
+  tg.BackButton.onClick(() => {
+    const onReady = !document.getElementById('screen-ready').classList.contains('hidden');
+    if (onReady) tg.close();
+    else retryAd();
+  });
+} catch(e) {}
 
 // ════════════════════════════════════════════════════
 //  SCREEN HELPERS
@@ -457,35 +475,51 @@ function showError(msg) {
 // ════════════════════════════════════════════════════
 //  ADSGRAM — PRIMARY NETWORK
 //
-//  AdsGram SDK (sad.min.js) exposes window.Adsgram
 //  Docs: https://docs.adsgram.ai/for-publishers/rewarded-ads
+//
+//  Common errors:
+//  "unable to retrieve launch parameters" → page opened
+//    outside Telegram, or Adsgram.init() called before
+//    tg.ready() populated initData. Fixed by awaiting
+//    tgReady before calling init().
+//  "block not found" → wrong or placeholder blockId
 // ════════════════════════════════════════════════════
 async function showAdsGramAd() {
-  // Safety check: SDK must be loaded
+  // 1. Block ID must be set
+  if (!ADSGRAM_BLOCK_ID || ADSGRAM_BLOCK_ID === 'YOUR_BLOCK_ID') {
+    throw new Error('no_block_id');
+  }
+
+  // 2. SDK must be loaded
   if (!window.Adsgram) {
-    throw new Error('AdsGram SDK not available');
+    throw new Error('AdsGram SDK not loaded');
+  }
+
+  // 3. Wait for Telegram initData to be populated
+  //    This is the fix for "unable to retrieve launch parameters"
+  await tgReady;
+
+  // 4. Verify initData exists (will be empty if opened in browser)
+  if (!tg.initData || tg.initData.length === 0) {
+    throw new Error('no_init_data');
   }
 
   const controller = await window.Adsgram.init({
-    blockId: ADSGRAM_BLOCK_ID,
+    blockId: String(ADSGRAM_BLOCK_ID),
     debug:   DEBUG_MODE,
-    debugBannerType: 'FullscreenMedia',   // used only when debug: true
+    debugBannerType: 'FullscreenMedia',
   });
 
   return new Promise((resolve, reject) => {
     controller.show()
       .then(result => {
-        // AdsGram fires onReward when the user finishes watching
-        // result.done === true means full watch completed
         if (result && result.done) {
           resolve('adsgram_ok');
         } else {
-          // User skipped or closed early
           reject(new Error('skipped'));
         }
       })
       .catch(err => {
-        // No fill, network error, etc.
         reject(err);
       });
   });
@@ -528,18 +562,36 @@ async function startAd() {
     await showAdsGramAd();
     console.log('✅ AdsGram ad completed');
     showSuccess();
-    return;   // done — don't fall through
+    return;
 
   } catch (e1) {
-    console.warn('⚠️ AdsGram:', e1.message || e1);
+    const msg = e1.message || String(e1);
+    console.warn('⚠️ AdsGram error:', msg);
 
-    // If user just skipped → no fallback, just show error
-    if (e1.message === 'skipped') {
+    // User skipped → no fallback, ask them to watch fully
+    if (msg === 'skipped') {
       isAdRunning = false;
       btn.disabled = false;
       showError('Watch the whole ad to earn coins — it only takes a few seconds!');
       return;
     }
+
+    // Block ID not set → skip fallback, show config warning
+    if (msg === 'no_block_id') {
+      console.warn('⚠️ ADSGRAM_BLOCK_ID not set — falling back to Monetag');
+      // fall through to Monetag
+    }
+
+    // Opened outside Telegram → both SDKs will fail, show friendly message
+    if (msg === 'no_init_data') {
+      isAdRunning = false;
+      btn.disabled = false;
+      showScreen('screen-ready');
+      setStatus('ready', 'Open this inside Telegram to watch ads.', 'error');
+      return;
+    }
+
+    // All other errors (no fill, network, etc.) → fall through to Monetag
   }
 
   // ── Step 2: Monetag fallback ────────────────────
@@ -560,7 +612,7 @@ async function startAd() {
   isAdRunning = false;
   btn.disabled = false;
   showScreen('screen-ready');
-  setStatus('ready', 'No ads right now — try again in a moment.', 'error');
+  setStatus('ready', 'No ads available right now — try again in a moment.', 'error');
 }
 
 function retryAd() {
