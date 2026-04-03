@@ -3,10 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- 🛑 CACHE BUSTERS: Forces Telegram to load the newest code every time -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <title>Watch Ad & Earn</title>
     
+    <!-- 1. Load Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; margin: 0; overflow: hidden; }
@@ -18,10 +24,9 @@
         .btn:disabled { background: #2a2a35; color: #666; cursor: not-allowed; box-shadow: none; }
         
         .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
-        .loading-text { color: #f5c542; font-size: 14px; margin-top: 15px; display: none; font-weight: bold; }
         
-        /* Debug Box so we can see network errors */
-        #debug-log { background: #1e1e2e; color: #a6accd; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 11px; margin-top: 30px; text-align: left; word-wrap: break-word; }
+        /* Debug Box for instant feedback */
+        #debug-log { background: #1e1e2e; border-left: 4px solid #f5c542; color: #a6accd; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 40px; text-align: left; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -30,79 +35,88 @@
         <h1>Watch Ad & Earn</h1>
         <p class="subtitle">Click the button below to view a short sponsored video and claim your coins.</p>
 
-        <button id="ad-btn" class="btn" onclick="playAd()" disabled>⏳ Loading Ad Engine...</button>
-        <div id="loading" class="loading-text">Playing ad... please do not close.</div>
+        <!-- Button starts locked until SDK is fully ready -->
+        <button id="ad-btn" class="btn" onclick="playOnClickAd()" disabled>⏳ Connecting to ad network...</button>
         
-        <div id="debug-log">System Log:<br></div>
+        <!-- Live System Log -->
+        <div id="debug-log">
+            <strong style="color:white;">System Status:</strong><br>
+            <span id="log-text">> Booting app...</span>
+        </div>
     </div>
 
     <script>
+        // --- TELEGRAM SETUP ---
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
 
-        // 👇 PUT YOUR ACTUAL SPOT ID HERE 👇
-        const ONCLICKA_SPOT_ID = 'Your Spot ID'; 
-
-        function logDebug(message) {
-            const logBox = document.getElementById('debug-log');
-            logBox.innerHTML += `> ${message}<br>`;
+        // --- UTILITY LOGGING ---
+        function logStatus(message) {
+            document.getElementById('log-text').innerHTML += `<br>> ${message}`;
+            console.log(message);
         }
 
-        // 🧠 Smart Loader: Wait for OnClickA SDK to load
-        function connectOnClickA() {
-            if (window.initCdTma) {
-                logDebug("SDK found. Connecting to Spot ID...");
-                
+        // 👇 PUT YOUR ACTUAL SPOT ID HERE 👇
+        const ONCLICKA_SPOT_ID = '434855'; 
+        
+        // This variable will hold the secret "show()" command
+        let triggerAd = null; 
+
+        // --- ONCLICKA INITIALIZATION SEQUENCE ---
+        function initAdNetwork() {
+            logStatus("tma.js script loaded. Initializing engine...");
+            
+            if (typeof window.initCdTma === 'function') {
                 window.initCdTma({ id: ONCLICKA_SPOT_ID })
                     .then(show => {
-                        logDebug("✅ Connection Successful! Ad Ready.");
-                        window.showAd = show;
+                        logStatus("✅ Ad Engine Ready!");
+                        triggerAd = show; // Save the show method
+                        
+                        // Unlock the UI
                         const btn = document.getElementById('ad-btn');
                         btn.innerText = "▶ Watch Ad Now";
                         btn.disabled = false;
                     })
                     .catch(e => {
-                        logDebug("❌ Connection Failed: " + (e.message || JSON.stringify(e)));
-                        const btn = document.getElementById('ad-btn');
-                        btn.innerText = "❌ No Ads Available";
+                        logStatus("❌ Init Error: " + (e.message || JSON.stringify(e)));
+                        document.getElementById('ad-btn').innerText = "❌ No ads available";
                     });
             } else {
-                logDebug("Waiting for SDK to download...");
-                setTimeout(connectOnClickA, 500); // Check again in half a second
+                logStatus("❌ Error: initCdTma function not found in SDK.");
             }
         }
 
-        // Start the loader
-        connectOnClickA();
-
-        function playAd() {
-            const btn = document.getElementById('ad-btn');
-            const loading = document.getElementById('loading');
-            
-            btn.disabled = true;
-            loading.style.display = "block";
-            logDebug("Attempting to play ad...");
-
-            if (window.showAd) {
-                window.showAd()
-                    .then(() => {
-                        logDebug("✅ Ad Finished. Sending coins!");
-                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
-                        Telegram.WebApp.close();
-                    })
-                    .catch((e) => {
-                        logDebug("❌ Ad Skipped or Error: " + (e.message || JSON.stringify(e)));
-                        Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
-                        Telegram.WebApp.close();
-                    });
-            } else {
-                logDebug("❌ Error: window.showAd is undefined.");
-                alert("Ad engine is not ready. Try again in a moment!");
-                btn.disabled = false;
-                loading.style.display = "none";
+        // --- THE BUTTON CLICK EVENT ---
+        function playOnClickAd() {
+            if (!triggerAd) {
+                alert("Ad engine is not ready yet.");
+                return;
             }
+
+            const btn = document.getElementById('ad-btn');
+            btn.disabled = true;
+            btn.innerText = "⏳ Playing ad...";
+            logStatus("Triggering ad sequence...");
+
+            // Execute the retrieved show() method
+            triggerAd()
+                .then(() => {
+                    logStatus("✅ Ad played successfully. Sending coins!");
+                    // Reward user
+                    Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
+                    Telegram.WebApp.close();
+                })
+                .catch(e => {
+                    logStatus("❌ Ad skipped or failed: " + (e.message || JSON.stringify(e)));
+                    // Do not reward user
+                    Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
+                    Telegram.WebApp.close();
+                });
         }
     </script>
+
+    <!-- 2. Load OnClickA SDK last, and explicitly fire the initialization when it finishes downloading -->
+    <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js" onload="initAdNetwork()"></script>
 </body>
 </html>
