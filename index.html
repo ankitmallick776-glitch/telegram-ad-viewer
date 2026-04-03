@@ -1,4 +1,55 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Watch Ad & Earn</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; margin: 0; overflow: hidden; }
+        .coin { font-size: 60px; margin-bottom: 15px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        
+        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 30px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); transition: transform 0.1s; }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { background: #2a2a35; color: #666; cursor: not-allowed; box-shadow: none; }
+        
+        .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
+        
+        #timer-container { display: none; margin-top: 30px; }
+        .progress-bar { width: 100%; max-width: 300px; height: 8px; background: #2a2a35; border-radius: 10px; margin: 15px auto; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: #22c55e; transition: width 1s linear; }
+        .time-text { font-size: 18px; font-weight: bold; color: #f5c542; }
+        
+        /* AdBlock Warning Box */
+        #adblock-warning { display: none; background: #ef444422; border: 1px solid #ef4444; padding: 15px; border-radius: 10px; margin-top: 20px; color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="coin">🪙</div>
+        <h1>Watch Ad & Earn</h1>
+        
+        <div id="adblock-warning">
+            🛑 AdBlocker / Private DNS Detected!<br><br>
+            <span style="font-size: 13px; font-weight: normal; color: #ccc;">You must turn off your AdBlocker or set your phone's Private DNS to "Automatic" to earn coins.</span>
+        </div>
+
+        <p class="subtitle" id="main-text">Click below to visit our sponsor. You must keep the sponsor page open until the timer finishes!</p>
+        
+        <button id="ad-btn" class="btn" onclick="openAdAndStartTimer()" disabled>⏳ Checking Connection...</button>
+        
+        <div id="timer-container">
+            <p class="subtitle">Verifying your visit...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="time-text"><span id="time-left">15</span> seconds left</div>
+        </div>
+    </div>
+
+    <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
@@ -7,19 +58,29 @@
         const DIRECT_LINK = "https://www.profitablecpmratenetwork.com/abe5f1zk?key=a0995fd9560541c674b9a739cad4399b";
 
         // ==========================================
-        // 🕵️ ANTI-FRAUD: ADBLOCKER DETECTION (FIXED)
+        // 🕵️ ANTI-FRAUD: ADBLOCKER DETECTION
         // ==========================================
+        function enableButton() {
+            const btn = document.getElementById('ad-btn');
+            btn.disabled = false;
+            btn.innerHTML = "▶ Open Sponsor Link";
+        }
+
         function checkAdBlocker() {
-            // Use a silent network fetch instead of an Image object to prevent MIME type errors
+            // Failsafe: If the network is just being slow, unlock the button after 2.5 seconds anyway
+            let fallbackTimer = setTimeout(() => {
+                enableButton();
+            }, 2500);
+
+            // Silent network ping to test for AdGuard/DNS blocking
             fetch("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", { method: 'HEAD', mode: 'no-cors' })
                 .then(() => {
-                    // Network allowed the ad domain! Safe to proceed.
-                    const btn = document.getElementById('ad-btn');
-                    btn.disabled = false;
-                    btn.innerHTML = "▶ Open Sponsor Link";
+                    clearTimeout(fallbackTimer);
+                    enableButton();
                 })
                 .catch(() => {
-                    // The network blocked the ad domain! Fraud detected.
+                    clearTimeout(fallbackTimer);
+                    // The network blocked the ping! Fraud detected.
                     document.getElementById('adblock-warning').style.display = 'block';
                     document.getElementById('main-text').style.display = 'none';
                     
@@ -29,7 +90,7 @@
                 });
         }
 
-        // Run the anti-fraud check the second the app opens
+        // Run the anti-fraud check 0.5 seconds after the app opens
         setTimeout(checkAdBlocker, 500);
 
         // ==========================================
@@ -41,7 +102,7 @@
             const timeLeftSpan = document.getElementById('time-left');
             const progressFill = document.getElementById('progress-fill');
             
-            // Force the ad to open in a new tab
+            // Force the ad to open securely via Telegram's built-in link handler
             Telegram.WebApp.openLink(DIRECT_LINK);
             
             // Hide button and show timer
@@ -57,7 +118,7 @@
                 const percentage = ((15 - currentSeconds) / 15) * 100;
                 progressFill.style.width = percentage + '%';
                 
-                // Reward the user
+                // Reward the user when timer hits 0
                 if (currentSeconds <= 0) {
                     clearInterval(interval);
                     Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
@@ -66,3 +127,5 @@
             }, 1000);
         }
     </script>
+</body>
+</html>
