@@ -1,87 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Watch Ad & Earn</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; margin: 0; overflow: hidden; }
-        .coin { font-size: 60px; margin-bottom: 15px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        
-        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 30px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); transition: transform 0.1s; }
-        .btn:active { transform: scale(0.96); }
-        .btn:disabled { background: #2a2a35; color: #666; cursor: not-allowed; box-shadow: none; }
-        
-        .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
-        
-        #timer-container { display: none; margin-top: 30px; }
-        .progress-bar { width: 100%; max-width: 300px; height: 8px; background: #2a2a35; border-radius: 10px; margin: 15px auto; overflow: hidden; }
-        .progress-fill { height: 100%; width: 0%; background: #22c55e; transition: width 1s linear; }
-        .time-text { font-size: 18px; font-weight: bold; color: #f5c542; }
-        
-        /* AdBlock Warning Box */
-        #adblock-warning { display: none; background: #ef444422; border: 1px solid #ef4444; padding: 15px; border-radius: 10px; margin-top: 20px; color: #ef4444; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="coin">🪙</div>
-        <h1>Watch Ad & Earn</h1>
-        
-        <div id="adblock-warning">
-            🛑 AdBlocker / Private DNS Detected!<br><br>
-            <span style="font-size: 13px; font-weight: normal; color: #ccc;">You must turn off your AdBlocker or set your phone's Private DNS to "Automatic" to earn coins.</span>
-        </div>
-
-        <p class="subtitle" id="main-text">Click below to visit our sponsor. You must keep the sponsor page open until the timer finishes!</p>
-        
-        <button id="ad-btn" class="btn" onclick="openAdAndStartTimer()" disabled>⏳ Checking Connection...</button>
-        
-        <div id="timer-container">
-            <p class="subtitle">Verifying your visit...</p>
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <div class="time-text"><span id="time-left">15</span> seconds left</div>
-        </div>
-    </div>
-
-    <script>
+<script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
 
-        // 👇 REPLACE THIS WITH YOUR ADSTERRA DIRECT LINK 👇
+        // 👇 YOUR ADSTERRA DIRECT LINK 👇
         const DIRECT_LINK = "https://www.profitablecpmratenetwork.com/abe5f1zk?key=a0995fd9560541c674b9a739cad4399b";
 
         // ==========================================
-        // 🕵️ ANTI-FRAUD: ADBLOCKER DETECTION
+        // 🕵️ ANTI-FRAUD: ADBLOCKER DETECTION (FIXED)
         // ==========================================
         function checkAdBlocker() {
-            // We create an invisible request to Google's main ad server. 
-            // 99.9% of AdBlockers and Private DNS (like AdGuard) block this exact URL.
-            const bait = new Image();
-            bait.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?rand=" + Math.random();
-            
-            bait.onload = function() {
-                // Network allowed the ad domain! Safe to proceed.
-                const btn = document.getElementById('ad-btn');
-                btn.disabled = false;
-                btn.innerHTML = "▶ Open Sponsor Link";
-            };
-            
-            bait.onerror = function() {
-                // The network blocked the ad domain! Fraud detected.
-                document.getElementById('adblock-warning').style.display = 'block';
-                document.getElementById('main-text').style.display = 'none';
-                
-                const btn = document.getElementById('ad-btn');
-                btn.innerHTML = "❌ Disabled";
-                btn.disabled = true;
-            };
+            // Use a silent network fetch instead of an Image object to prevent MIME type errors
+            fetch("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", { method: 'HEAD', mode: 'no-cors' })
+                .then(() => {
+                    // Network allowed the ad domain! Safe to proceed.
+                    const btn = document.getElementById('ad-btn');
+                    btn.disabled = false;
+                    btn.innerHTML = "▶ Open Sponsor Link";
+                })
+                .catch(() => {
+                    // The network blocked the ad domain! Fraud detected.
+                    document.getElementById('adblock-warning').style.display = 'block';
+                    document.getElementById('main-text').style.display = 'none';
+                    
+                    const btn = document.getElementById('ad-btn');
+                    btn.innerHTML = "❌ Disabled";
+                    btn.disabled = true;
+                });
         }
 
         // Run the anti-fraud check the second the app opens
@@ -121,5 +66,3 @@
             }, 1000);
         }
     </script>
-</body>
-</html>
