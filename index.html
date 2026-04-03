@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <!-- 🛑 CACHE BUSTERS -->
+    <!-- 🛑 CACHE BUSTERS (Kept these so future updates push instantly to users) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -23,10 +23,7 @@
         
         .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
         
-        /* Debug Box for instant feedback */
-        #debug-log { background: #1e1e2e; border-left: 4px solid #f5c542; color: #a6accd; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 30px; text-align: left; word-wrap: break-word; }
-        
-        /* The invisible box where OnClickA will inject the video */
+        /* The invisible box where OnClickA injects the video */
         #ad-container { width: 100%; max-width: 320px; margin: 15px auto; min-height: 10px; transition: all 0.3s; }
     </style>
 </head>
@@ -36,80 +33,66 @@
         <h1>Watch Ad & Earn</h1>
         <p class="subtitle">Click the button below to view a short sponsored video and claim your coins.</p>
 
-        <!-- 👇 THIS IS THE SELECTOR ONCLICKA IS LOOKING FOR 👇 -->
+        <!-- OnClickA Video Selector Container -->
         <div id="ad-container"></div>
 
-        <button id="ad-btn" class="btn" onclick="playOnClickAd()" disabled>⏳ Connecting to ad network...</button>
-        
-        <div id="debug-log">
-            <strong style="color:white;">System Status:</strong><br>
-            <span id="log-text">> Booting app...</span>
-        </div>
+        <button id="ad-btn" class="btn" onclick="playOnClickAd()" disabled>⏳ Connecting...</button>
     </div>
 
     <script>
+        // --- TELEGRAM SETUP ---
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
 
-        function logStatus(message) {
-            document.getElementById('log-text').innerHTML += `<br>> ${message}`;
-            console.log(message);
-        }
-
-        // 👇 PUT YOUR ACTUAL SPOT ID HERE 👇
+        // 👇 PUT YOUR ACTUAL SPOT ID HERE ONE LAST TIME 👇
         const ONCLICKA_SPOT_ID = '6115742'; 
         
         let triggerAd = null; 
 
+        // --- ONCLICKA INITIALIZATION ---
         function initAdNetwork() {
-            logStatus("tma.js script loaded. Initializing engine...");
-            
             if (typeof window.initCdTma === 'function') {
                 window.initCdTma({ id: ONCLICKA_SPOT_ID })
                     .then(show => {
-                        logStatus("✅ Ad Engine Ready!");
                         triggerAd = show; 
-                        
                         const btn = document.getElementById('ad-btn');
                         btn.innerText = "▶ Watch Ad Now";
                         btn.disabled = false;
                     })
                     .catch(e => {
-                        logStatus("❌ Init Error: " + (e.message || JSON.stringify(e)));
+                        console.error("Init Error:", e);
                         document.getElementById('ad-btn').innerText = "❌ No ads available";
                     });
             } else {
-                logStatus("❌ Error: initCdTma function not found in SDK.");
+                console.error("initCdTma function not found in SDK.");
             }
         }
 
+        // --- BUTTON CLICK EVENT ---
         function playOnClickAd() {
-            if (!triggerAd) {
-                alert("Ad engine is not ready yet.");
-                return;
-            }
+            if (!triggerAd) return;
 
             const btn = document.getElementById('ad-btn');
             btn.disabled = true;
             btn.innerText = "⏳ Playing ad...";
-            logStatus("Triggering ad sequence...");
 
             triggerAd()
                 .then(() => {
-                    logStatus("✅ Ad played successfully. Sending coins!");
+                    // Reward user for successfully watching
                     Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
                     Telegram.WebApp.close();
                 })
                 .catch(e => {
-                    logStatus("❌ Ad skipped or failed: " + (e.message || JSON.stringify(e)));
+                    console.error("Ad skipped or failed:", e);
+                    // Do not reward user if they skip
                     Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
                     Telegram.WebApp.close();
                 });
         }
     </script>
 
-    <!-- OnClickA SDK -->
+    <!-- Load OnClickA SDK and trigger init immediately when ready -->
     <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js" onload="initAdNetwork()"></script>
 </body>
 </html>
