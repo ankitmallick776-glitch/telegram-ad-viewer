@@ -1,74 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Watch Ad & Earn</title>
-    <!-- Step 1: Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Step 2: RichAds SDK -->
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: sans-serif;
-            background: #1a1a2e;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container { text-align: center; padding: 2rem; }
-        h1 { font-size: 1.8rem; margin-bottom: 1rem; }
-        p { color: #aaa; margin-bottom: 1rem; }
-        .status { margin-top: 1rem; font-size: 0.9rem; color: #f0a500; }
+        body { font-family: 'Segoe UI', sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; margin: 0; overflow: hidden; }
+        .coin { font-size: 60px; margin-bottom: 15px; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        
+        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 30px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); transition: transform 0.1s; }
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { background: #2a2a35; color: #666; cursor: not-allowed; box-shadow: none; }
+        
+        .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
+        
+        #timer-container { display: none; margin-top: 30px; }
+        .progress-bar { width: 100%; max-width: 300px; height: 8px; background: #2a2a35; border-radius: 10px; margin: 15px auto; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: #22c55e; transition: width 1s linear; }
+        .time-text { font-size: 18px; font-weight: bold; color: #f5c542; }
+        
+        /* AdBlock Warning Box */
+        #adblock-warning { display: none; background: #ef444422; border: 1px solid #ef4444; padding: 15px; border-radius: 10px; margin-top: 20px; color: #ef4444; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📺 Watch Ad & Earn</h1>
-        <p>Loading your rewarded ad...</p>
-        <div class="status" id="status">⏳ Initializing...</div>
+        <div class="coin">🪙</div>
+        <h1>Watch Ad & Earn</h1>
+        
+        <div id="adblock-warning">
+            🛑 AdBlocker / Private DNS Detected!<br><br>
+            <span style="font-size: 13px; font-weight: normal; color: #ccc;">You must turn off your AdBlocker or set your phone's Private DNS to "Automatic" to earn coins.</span>
+        </div>
+
+        <p class="subtitle" id="main-text">Click below to visit our sponsor. You must keep the sponsor page open until the timer finishes!</p>
+        
+        <button id="ad-btn" class="btn" onclick="openAdAndStartTimer()" disabled>⏳ Checking Connection...</button>
+        
+        <div id="timer-container">
+            <p class="subtitle">Verifying your visit...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="time-text"><span id="time-left">15</span> seconds left</div>
+        </div>
     </div>
 
     <script>
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
+        if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
 
-        const statusEl = document.getElementById('status');
+        // 👇 REPLACE THIS WITH YOUR ADSTERRA DIRECT LINK 👇
+        const DIRECT_LINK = "https://www.profitablecpmratenetwork.com/abe5f1zk?key=a0995fd9560541c674b9a739cad4399b";
 
-        function sendResult(completed, reason) {
-            Telegram.WebApp.sendData(JSON.stringify({
-                ad_completed: completed,
-                reason: reason || null
-            }));
-            Telegram.WebApp.close();
+        // ==========================================
+        // 🕵️ ANTI-FRAUD: ADBLOCKER DETECTION
+        // ==========================================
+        function checkAdBlocker() {
+            // We create an invisible request to Google's main ad server. 
+            // 99.9% of AdBlockers and Private DNS (like AdGuard) block this exact URL.
+            const bait = new Image();
+            bait.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?rand=" + Math.random();
+            
+            bait.onload = function() {
+                // Network allowed the ad domain! Safe to proceed.
+                const btn = document.getElementById('ad-btn');
+                btn.disabled = false;
+                btn.innerHTML = "▶ Open Sponsor Link";
+            };
+            
+            bait.onerror = function() {
+                // The network blocked the ad domain! Fraud detected.
+                document.getElementById('adblock-warning').style.display = 'block';
+                document.getElementById('main-text').style.display = 'none';
+                
+                const btn = document.getElementById('ad-btn');
+                btn.innerHTML = "❌ Disabled";
+                btn.disabled = true;
+            };
         }
 
-        // Step 3: Initialize RichAds controller
-        const richadsController = new TelegramAdsController();
-        richadsController.initialize({
-            pubId: "1007116",   // ← your pubId
-            appId: "6894",      // ← your appId
-            debug: false        // set true to test with dummy ads
-        });
+        // Run the anti-fraud check the second the app opens
+        setTimeout(checkAdBlocker, 500);
 
-        statusEl.textContent = '▶️ Loading ad...';
-
-        // Step 4: Trigger the ad
-        // Options: triggerInterstitialVideo() | triggerInterstitialBanner() | triggerNativeNotification()
-        richadsController.triggerInterstitialVideo()
-            .then((result) => {
-                // Ad completed — reward the user
-                console.log('Ad completed:', result);
-                sendResult(true);
-            })
-            .catch((result) => {
-                // Ad failed or was skipped
-                console.log('Ad failed/skipped:', result);
-                sendResult(false, result || 'ad_not_shown');
-            });
+        // ==========================================
+        // ⏱️ AD LAUNCH & TIMER
+        // ==========================================
+        function openAdAndStartTimer() {
+            const btn = document.getElementById('ad-btn');
+            const timerContainer = document.getElementById('timer-container');
+            const timeLeftSpan = document.getElementById('time-left');
+            const progressFill = document.getElementById('progress-fill');
+            
+            // Force the ad to open in a new tab
+            Telegram.WebApp.openLink(DIRECT_LINK);
+            
+            // Hide button and show timer
+            btn.style.display = 'none';
+            timerContainer.style.display = 'block';
+            
+            let currentSeconds = 15;
+            
+            const interval = setInterval(() => {
+                currentSeconds--;
+                timeLeftSpan.innerText = currentSeconds;
+                
+                const percentage = ((15 - currentSeconds) / 15) * 100;
+                progressFill.style.width = percentage + '%';
+                
+                // Reward the user
+                if (currentSeconds <= 0) {
+                    clearInterval(interval);
+                    Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
+                    Telegram.WebApp.close();
+                }
+            }, 1000);
+        }
     </script>
 </body>
 </html>
