@@ -4,35 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
+    <!-- 🛑 CACHE BUSTERS (Kept these so future updates push instantly to users) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
 
     <title>Watch Ad & Earn</title>
-    <!-- Telegram Web App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #13131a; color: white; text-align: center; padding: 40px 20px; margin: 0; overflow: hidden; }
         .coin { font-size: 60px; margin-bottom: 15px; animation: float 3s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
         
-        /* Energy UI Styles */
-        .energy-box { background: #2a2a35; border-radius: 12px; padding: 15px; margin: 20px auto; max-width: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .energy-text { font-size: 20px; font-weight: bold; margin: 0; color: #42f5e0; }
-        .timer-text { font-size: 13px; color: #aaa; margin-top: 6px; }
-        
-        /* Smooth Progress Bar */
-        .progress-container { width: 100%; background: #1a1a24; border-radius: 8px; height: 10px; margin-top: 12px; overflow: hidden; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); width: 0%; transition: width 1s linear; box-shadow: 0 0 10px rgba(79, 172, 254, 0.5); }
-
-        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 15px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); transition: transform 0.1s; }
+        .btn { background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%); color: black; border: none; padding: 18px 30px; font-size: 18px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; max-width: 300px; margin-top: 20px; box-shadow: 0 4px 15px rgba(245, 197, 66, 0.3); transition: transform 0.1s; }
         .btn:active { transform: scale(0.96); }
         .btn:disabled { background: #2a2a35; color: #666; cursor: not-allowed; box-shadow: none; }
         
         .subtitle { color: #888; font-size: 15px; margin-top: 10px; line-height: 1.5; }
+        
+        /* The invisible box where OnClickA injects the video */
         #ad-container { width: 100%; max-width: 320px; margin: 15px auto; min-height: 10px; transition: all 0.3s; }
     </style>
 </head>
@@ -40,161 +31,24 @@
     <div class="container">
         <div class="coin">🪙</div>
         <h1>Watch Ad & Earn</h1>
-        <p class="subtitle">Click the button below to view a short sponsored video.<br>
-        <b style="color:#ddd; font-size: 13px;">⚠️ Note: You need at least 1 ⚡ Energy to receive coins!</b></p>
+        <p class="subtitle">Click the button below to view a short sponsored video and claim your coins.</p>
 
-        <!-- Live Energy Box with Progress Bar -->
-        <div class="energy-box">
-            <p class="energy-text" id="energy-display">⚡ Loading Energy...</p>
-            <div class="progress-container">
-                <div class="progress-bar" id="energy-progress"></div>
-            </div>
-            <p class="timer-text" id="timer-display">Connecting to server...</p>
-        </div>
-
+        <!-- OnClickA Video Selector Container -->
         <div id="ad-container"></div>
 
         <button id="ad-btn" class="btn" onclick="playOnClickAd()" disabled>⏳ Connecting...</button>
     </div>
 
     <script>
-        // --- SETUP ---
+        // --- TELEGRAM SETUP ---
         Telegram.WebApp.ready();
         Telegram.WebApp.expand();
         if (Telegram.WebApp.disableVerticalSwipes) { Telegram.WebApp.disableVerticalSwipes(); }
 
+        // 👇 PUT YOUR ACTUAL SPOT ID HERE ONE LAST TIME 👇
         const ONCLICKA_SPOT_ID = '6115742'; 
         
-        // Supabase Initialization
-        const SUPABASE_URL = 'https://ctbwtqltftrmozdpgozf.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_AE7AmzcmzBtChkr9QsjiWg_dLurfRD9';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // State variables to sync the Ad Network and the Energy check
         let triggerAd = null; 
-        let adNetworkReady = false;
-        let hasEnergy = false;
-        
-        // Energy Constants (Must match Python backend)
-        const MAX_ENERGY = 5;
-        const RECHARGE_MINUTES = 24;
-
-        // Get User ID from Telegram OR the Bulletproof URL Parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlUserId = urlParams.get('uid');
-
-        const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-        const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
-
-        // --- UI SYNC ---
-        function updateButtonState() {
-            const btn = document.getElementById('ad-btn');
-            if (hasEnergy && adNetworkReady) {
-                btn.innerText = "▶ Watch Ad Now";
-                btn.disabled = false;
-            } else if (!hasEnergy) {
-                btn.innerText = "🔋 Out of Energy";
-                btn.disabled = true;
-            } else {
-                btn.innerText = "⏳ Connecting...";
-                btn.disabled = true;
-            }
-        }
-
-        // --- ENERGY LOGIC ---
-        async function fetchEnergy() {
-            // Check the global 'userId' we defined at the top
-            if (!userId) {
-                document.getElementById('energy-display').innerText = "⚡ User Not Found";
-                document.getElementById('timer-display').innerText = "Please open using the Web App button in Telegram.";
-                return;
-            }
-
-            const { data, error } = await supabaseClient
-                .from('users')
-                .select('energy, last_energy_update')
-                .eq('user_id', userId)
-                .single();
-
-            if (error || !data) {
-                document.getElementById('energy-display').innerText = "⚡ Database Error";
-                document.getElementById('timer-display').innerText = "Make sure your Supabase RLS policy is set correctly.";
-                console.error("Supabase Error:", error);
-                return;
-            }
-
-            let currentEnergy = data.energy ?? MAX_ENERGY;
-            let lastUpdateStr = data.last_energy_update;
-            let lastUpdate = lastUpdateStr ? new Date(lastUpdateStr) : new Date();
-            let now = new Date();
-
-            // Calculate regen if not full
-            if (currentEnergy < MAX_ENERGY) {
-                let timePassedMs = now - lastUpdate;
-                let timePassedSec = Math.floor(timePassedMs / 1000);
-                let energyToAdd = Math.floor(timePassedSec / (RECHARGE_MINUTES * 60));
-
-                if (energyToAdd > 0) {
-                    currentEnergy = Math.min(MAX_ENERGY, currentEnergy + energyToAdd);
-                    let remainderSec = timePassedSec % (RECHARGE_MINUTES * 60);
-                    lastUpdate = new Date(now.getTime() - (remainderSec * 1000));
-                }
-            }
-
-            hasEnergy = currentEnergy > 0;
-            updateButtonState();
-            startLiveTimer(currentEnergy, lastUpdate);
-        }
-
-        let timerInterval;
-        function startLiveTimer(currentEnergy, lastUpdate) {
-            clearInterval(timerInterval);
-            const energyDisplay = document.getElementById('energy-display');
-            const timerDisplay = document.getElementById('timer-display');
-            const progressBar = document.getElementById('energy-progress');
-
-            function tick() {
-                let now = new Date();
-                
-                if (currentEnergy >= MAX_ENERGY) {
-                    energyDisplay.innerText = `⚡ ${MAX_ENERGY}/${MAX_ENERGY} Energy`;
-                    timerDisplay.innerText = "You are fully charged!";
-                    progressBar.style.width = "100%";
-                    clearInterval(timerInterval);
-                    return;
-                }
-
-                energyDisplay.innerText = `⚡ ${currentEnergy}/${MAX_ENERGY} Energy`;
-                
-                let timePassedMs = now - lastUpdate;
-                let timePassedSec = Math.floor(timePassedMs / 1000);
-                let secondsUntilNext = (RECHARGE_MINUTES * 60) - timePassedSec;
-
-                if (secondsUntilNext <= 0) {
-                    // Time to add a point!
-                    currentEnergy++;
-                    lastUpdate = new Date(); // Reset the anchor
-                    hasEnergy = currentEnergy > 0;
-                    updateButtonState();
-                    tick(); // Re-run instantly
-                } else {
-                    let mins = Math.floor(secondsUntilNext / 60);
-                    let secs = secondsUntilNext % 60;
-                    // Pad with zero for clean look (e.g., 24:05)
-                    let formattedSecs = secs < 10 ? '0' + secs : secs;
-                    timerDisplay.innerText = `Next energy in ${mins}:${formattedSecs}`;
-                    
-                    // Smoothly update the progress bar based on total overall capacity
-                    let fractionOfNextPoint = ((RECHARGE_MINUTES * 60) - secondsUntilNext) / (RECHARGE_MINUTES * 60);
-                    let exactEnergyDecimal = currentEnergy + fractionOfNextPoint;
-                    let fillPercentage = (exactEnergyDecimal / MAX_ENERGY) * 100;
-                    progressBar.style.width = `${fillPercentage}%`;
-                }
-            }
-            
-            tick(); // Run immediately so there's no 1-second delay on UI load
-            timerInterval = setInterval(tick, 1000);
-        }
 
         // --- ONCLICKA INITIALIZATION ---
         function initAdNetwork() {
@@ -202,8 +56,9 @@
                 window.initCdTma({ id: ONCLICKA_SPOT_ID })
                     .then(show => {
                         triggerAd = show; 
-                        adNetworkReady = true;
-                        updateButtonState();
+                        const btn = document.getElementById('ad-btn');
+                        btn.innerText = "▶ Watch Ad Now";
+                        btn.disabled = false;
                     })
                     .catch(e => {
                         console.error("Init Error:", e);
@@ -216,7 +71,7 @@
 
         // --- BUTTON CLICK EVENT ---
         function playOnClickAd() {
-            if (!triggerAd || !hasEnergy) return;
+            if (!triggerAd) return;
 
             const btn = document.getElementById('ad-btn');
             btn.disabled = true;
@@ -224,19 +79,20 @@
 
             triggerAd()
                 .then(() => {
+                    // Reward user for successfully watching
                     Telegram.WebApp.sendData(JSON.stringify({ad_completed: true}));
                     Telegram.WebApp.close();
                 })
                 .catch(e => {
+                    console.error("Ad skipped or failed:", e);
+                    // Do not reward user if they skip
                     Telegram.WebApp.sendData(JSON.stringify({ad_completed: false}));
                     Telegram.WebApp.close();
                 });
         }
-
-        // Run the fetch as soon as page loads
-        fetchEnergy();
     </script>
 
+    <!-- Load OnClickA SDK and trigger init immediately when ready -->
     <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js" onload="initAdNetwork()"></script>
 </body>
 </html>
