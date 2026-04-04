@@ -100,21 +100,31 @@
 
         // --- ENERGY LOGIC ---
         async function fetchEnergy() {
-            if (!userId) {
-                document.getElementById('energy-display').innerText = "⚡ User Not Found";
-                document.getElementById('timer-display').innerText = "Please open from Telegram.";
+            const initData = Telegram.WebApp.initDataUnsafe;
+            
+            // Debugging popup: Delete this after we fix it!
+            // alert("Telegram Data: " + JSON.stringify(initData)); 
+            
+            if (!initData || !initData.user || !initData.user.id) {
+                document.getElementById('energy-display').innerText = "⚡ Context Error";
+                document.getElementById('timer-display').innerText = "Telegram didn't send User ID. Are you using the Web App button?";
+                
+                // Show the exact raw data Telegram provided (usually empty if context is wrong)
+                alert("Debug Info: " + JSON.stringify(initData));
                 return;
             }
 
-            const { data, error } = await supabaseClient
+            const userId = initData.user.id;
+
+            const { data, error } = await supabase
                 .from('users')
                 .select('energy, last_energy_update')
                 .eq('user_id', userId)
                 .single();
 
             if (error || !data) {
-                document.getElementById('energy-display').innerText = "⚡ Error loading";
-                document.getElementById('timer-display').innerText = "Could not fetch energy.";
+                document.getElementById('energy-display').innerText = "⚡ Database Error";
+                document.getElementById('timer-display').innerText = "Make sure your Supabase RLS policy is set correctly.";
                 return;
             }
 
