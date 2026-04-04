@@ -79,9 +79,12 @@
         const MAX_ENERGY = 5;
         const RECHARGE_MINUTES = 24;
 
-        // Get User ID from Telegram Mini App
-        const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-        const userId = tgUser ? tgUser.id : null;
+        // Get User ID from Telegram OR the Bulletproof URL Parameter
+const urlParams = new URLSearchParams(window.location.search);
+const urlUserId = urlParams.get('uid');
+
+const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
 
         // --- UI SYNC ---
         function updateButtonState() {
