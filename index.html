@@ -65,7 +65,7 @@
 
         const ONCLICKA_SPOT_ID = '6115742'; 
         
-        // 👇 PASTE YOUR SUPABASE URL AND PUBLIC ANON KEY HERE 👇
+        // Supabase Initialization
         const SUPABASE_URL = 'https://ctbwtqltftrmozdpgozf.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_AE7AmzcmzBtChkr9QsjiWg_dLurfRD9';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -80,11 +80,11 @@
         const RECHARGE_MINUTES = 24;
 
         // Get User ID from Telegram OR the Bulletproof URL Parameter
-const urlParams = new URLSearchParams(window.location.search);
-const urlUserId = urlParams.get('uid');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('uid');
 
-const tgUser = Telegram.WebApp.initDataUnsafe?.user;
-const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
+        const tgUser = Telegram.WebApp.initDataUnsafe?.user;
+        const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
 
         // --- UI SYNC ---
         function updateButtonState() {
@@ -103,23 +103,14 @@ const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
 
         // --- ENERGY LOGIC ---
         async function fetchEnergy() {
-            const initData = Telegram.WebApp.initDataUnsafe;
-            
-            // Debugging popup: Delete this after we fix it!
-            // alert("Telegram Data: " + JSON.stringify(initData)); 
-            
-            if (!initData || !initData.user || !initData.user.id) {
-                document.getElementById('energy-display').innerText = "⚡ Context Error";
-                document.getElementById('timer-display').innerText = "Telegram didn't send User ID. Are you using the Web App button?";
-                
-                // Show the exact raw data Telegram provided (usually empty if context is wrong)
-                alert("Debug Info: " + JSON.stringify(initData));
+            // Check the global 'userId' we defined at the top
+            if (!userId) {
+                document.getElementById('energy-display').innerText = "⚡ User Not Found";
+                document.getElementById('timer-display').innerText = "Please open using the Web App button in Telegram.";
                 return;
             }
 
-            const userId = initData.user.id;
-
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .select('energy, last_energy_update')
                 .eq('user_id', userId)
@@ -128,6 +119,7 @@ const userId = (tgUser && tgUser.id) ? tgUser.id : urlUserId;
             if (error || !data) {
                 document.getElementById('energy-display').innerText = "⚡ Database Error";
                 document.getElementById('timer-display').innerText = "Make sure your Supabase RLS policy is set correctly.";
+                console.error("Supabase Error:", error);
                 return;
             }
 
