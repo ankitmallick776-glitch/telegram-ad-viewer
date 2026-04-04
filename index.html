@@ -68,7 +68,7 @@
         // 👇 PASTE YOUR SUPABASE URL AND PUBLIC ANON KEY HERE 👇
         const SUPABASE_URL = 'https://ctbwtqltftrmozdpgozf.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_AE7AmzcmzBtChkr9QsjiWg_dLurfRD9';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // State variables to sync the Ad Network and the Energy check
         let triggerAd = null; 
@@ -106,7 +106,7 @@
                 return;
             }
 
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .select('energy, last_energy_update')
                 .eq('user_id', userId)
