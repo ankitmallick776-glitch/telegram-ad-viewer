@@ -262,7 +262,7 @@
 
         function initRichAds() {
             if (typeof window.RichAds !== 'undefined' && typeof window.RichAds.init === 'function') {
-                window.RichAds.init({ blockId: RICHADS_BLOCK_ID })
+                window.RichAds.init({ blockId: 1007116 })
                     .then(showFn => {
                         showRichAd = showFn;
                         adReady    = true;
@@ -340,7 +340,7 @@
            Traffic Sources → Telegram Mini Apps → Get Code → SDK URL
     -->
     <script
-        src="https://cdn.richads.com/tma/sdk.js"
+        src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"
         onload="initRichAds()"
         onerror="setStatus('❌ Failed to load ad network.', true)">
     </script>
