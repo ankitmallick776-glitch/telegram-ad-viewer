@@ -8,7 +8,6 @@
     <meta http-equiv="Expires" content="0">
     <title>Watch Ad & Earn</title>
 
-    <!-- ✅ REQUIRED FIRST: Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
@@ -227,10 +226,7 @@
         }
 
         // ── RichAds: dynamically inject SDK then initialise ──────────
-        // Dynamic injection gives us real onload/onerror events and
-        // avoids the race condition of a static <script> tag.
         function initRichAds() {
-
             // Already loaded (e.g. cached)?
             if (typeof TelegramAdsController !== 'undefined') {
                 setupController();
@@ -264,10 +260,13 @@
         function setupController() {
             try {
                 window.TelegramAdsController = new TelegramAdsController();
+                
+                // 👇 UPDATED PUB ID & APP ID HERE 👇
                 window.TelegramAdsController.initialize({
-                    pubId: "1007116",
-                    appId: "6894",
+                    pubId: "993542",
+                    appId: "4642",
                 });
+                
                 adReady = true;
                 updateUI();
                 console.log('✅ RichAds TelegramAdsController ready');
