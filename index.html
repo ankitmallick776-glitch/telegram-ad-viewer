@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- 🛑 CACHE BUSTERS -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -12,6 +11,14 @@
     <title>Watch Ad & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+      window.TelegramAdsController = new TelegramAdsController();
+      window.TelegramAdsController.initialize({
+        pubId: "1007116",
+        appId: "6894",
+      });
+    </script>
     <style>
         * { box-sizing: border-box; }
 
@@ -124,7 +131,6 @@
     <h1>Watch Ad &amp; Earn</h1>
     <p class="subtitle">Watch a short ad and claim your coins.<br>You have <strong>5 energy</strong> — 1 regens every 24 min.</p>
 
-    <!-- Energy display -->
     <div class="energy-section">
         <div class="energy-label">
             <span id="energy-text">⚡ Energy: ? / 5</span>
@@ -140,7 +146,7 @@
         <div class="regen-timer" id="regen-timer">Loading...</div>
     </div>
 
-    <button id="ad-btn" class="btn" onclick="watchAd()" disabled>⏳ Connecting...</button>
+    <button id="ad-btn" class="btn" onclick="watchAd()">▶ Watch Ad Now</button>
     <div class="status-msg" id="status-msg"></div>
 
     <script>
@@ -155,12 +161,7 @@
         const STORAGE_KEY_E   = 'cashyads_energy';
         const STORAGE_KEY_T   = 'cashyads_last_watch'; // timestamp of last ad watch
 
-        // ── RichAds config ──────────────────────────────────────────
-        // 👇 Replace with your actual RichAds TMA block/spot ID
-        const RICHADS_BLOCK_ID = 'YOUR_RICHADS_BLOCK_ID';
-
         // ── State ───────────────────────────────────────────────────
-        let adReady    = false;   // RichAds SDK initialised
         let energy     = MAX_ENERGY;
         let lastWatch  = 0;       // Unix ms of last successful ad watch
         let regenTimer = null;
@@ -185,8 +186,6 @@
         }
 
         // ── Regen logic ─────────────────────────────────────────────
-        // Work out how many energy units have regenerated since lastWatch,
-        // cap at MAX_ENERGY, and return ms until next regen.
         function applyRegen() {
             if (energy >= MAX_ENERGY) return 0;       // full — no timer needed
             if (lastWatch === 0)      return 0;
@@ -237,7 +236,7 @@
             if (energy <= 0) {
                 btn.disabled   = true;
                 btn.innerText  = '⚡ No energy — wait for recharge';
-            } else if (!adReady) {
+            } else if (typeof window.TelegramAdsController === 'undefined') {
                 btn.disabled  = true;
                 btn.innerText = '⏳ Connecting…';
             } else {
@@ -255,32 +254,12 @@
             }, 1000);
         }
 
-        // ── RichAds initialisation ───────────────────────────────────
-        // RichAds TMA SDK exposes window.RichAds.init({ blockId }) → Promise<showFn>
-        // Replace the init/show calls below if your account uses a different API surface.
-        let showRichAd = null;
-
-        function initRichAds() {
-            if (typeof window.RichAds !== 'undefined' && typeof window.RichAds.init === 'function') {
-                window.RichAds.init({ blockId: 1007116 })
-                    .then(showFn => {
-                        showRichAd = showFn;
-                        adReady    = true;
-                        updateUI();
-                    })
-                    .catch(err => {
-                        console.error('RichAds init error:', err);
-                        setStatus('❌ No ads available right now.', true);
-                    });
-            } else {
-                console.error('RichAds SDK not found.');
-                setStatus('❌ Ad network failed to load.', true);
-            }
-        }
-
         // ── Watch ad ────────────────────────────────────────────────
         function watchAd() {
-            if (!adReady || !showRichAd) return;
+            if (typeof window.TelegramAdsController === 'undefined') {
+                setStatus('❌ Ad network not ready yet.', true);
+                return;
+            }
             if (energy <= 0) {
                 setStatus('⚡ No energy! Wait for recharge.', true);
                 return;
@@ -291,7 +270,8 @@
             btn.innerText = '⏳ Playing ad…';
             setStatus('');
 
-            showRichAd()
+            // Call the initialized TelegramAdsController from your new script
+            window.TelegramAdsController.show()
                 .then(() => {
                     // Deduct energy on success
                     energy--;
@@ -317,7 +297,6 @@
                     setStatus('Ad was skipped — please watch the full ad to earn.', true);
                     // Tell bot: not rewarded
                     Telegram.WebApp.sendData(JSON.stringify({ ad_completed: false }));
-                    Telegram.WebApp.close();
                 });
         }
 
@@ -332,17 +311,6 @@
         applyRegen();
         updateUI();
         startRegenClock();
-    </script>
-
-    <!--
-        👇 Replace this src with your actual RichAds TMA SDK URL.
-           You can find it in your RichAds dashboard under:
-           Traffic Sources → Telegram Mini Apps → Get Code → SDK URL
-    -->
-    <script
-        src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"
-        onload="initRichAds()"
-        onerror="setStatus('❌ Failed to load ad network.', true)">
     </script>
 </body>
 </html>
