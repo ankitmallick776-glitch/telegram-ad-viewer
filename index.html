@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- 🛑 CACHE BUSTERS -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -11,13 +12,137 @@
     <title>Watch Ad & Earn</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
-    <script>
-      window.TelegramAdsController = new TelegramAdsController();
-      window.TelegramAdsController.initialize({
-        pubId: "1007116",
-        appId: "6894",
-      });
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #13131a;
+            color: white;
+            text-align: center;
+            padding: 30px 20px 40px;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .coin {
+            font-size: 56px;
+            margin-bottom: 10px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50%       { transform: translateY(-10px); }
+        }
+
+        h1 { margin: 0 0 6px; font-size: 22px; }
+
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+            margin: 0 0 20px;
+            line-height: 1.5;
+        }
+
+        /* ── Energy bar ── */
+        .energy-section {
+            background: #1e1e2e;
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin: 0 auto 20px;
+            max-width: 320px;
+        }
+        .energy-label {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .energy-label span { color: #f5c542; font-weight: bold; }
+        .energy-slots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .slot {
+            width: 44px;
+            height: 22px;
+            border-radius: 6px;
+            background: #2a2a3a;
+            border: 2px solid #3a3a4a;
+            transition: background 0.4s, border-color 0.4s;
+        }
+        .slot.filled {
+            background: linear-gradient(135deg, #f5c542, #e0a800);
+            border-color: #f5c542;
+            box-shadow: 0 0 8px rgba(245,197,66,0.5);
+        }
+        .regen-timer {
+            font-size: 12px;
+            color: #666;
+        }
+        .regen-timer.active { color: #f5c542; }
+
+        /* ── Watch button ── */
+        .btn {
+            background: linear-gradient(135deg, #f5c542 0%, #e0a800 100%);
+            color: black;
+            border: none;
+            padding: 16px 30px;
+            font-size: 17px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 4px;
+            box-shadow: 0 4px 15px rgba(245,197,66,0.3);
+            transition: transform 0.1s, opacity 0.2s;
+        }
+        .btn:active:not(:disabled) { transform: scale(0.96); }
+        .btn:disabled {
+            background: #2a2a35;
+            color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .status-msg {
+            margin-top: 14px;
+            font-size: 13px;
+            color: #888;
+            min-height: 18px;
+        }
+        .status-msg.error { color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="coin">🪙</div>
+    <h1>Watch Ad &amp; Earn</h1>
+    <p class="subtitle">Watch a short ad and claim your coins.<br>You have <strong>5 energy</strong> — 1 regens every 24 min.</p>
+
+    <!-- Energy display -->
+    <div class="energy-section">
+        <div class="energy-label">
+            <span id="energy-text">⚡ Energy: ? / 5</span>
+            <span id="ads-left-text" style="color:#aaa;font-weight:normal;font-size:12px;"></span>
+        </div>
+        <div class="energy-slots" id="energy-slots">
+            <div class="slot" id="s0"></div>
+            <div class="slot" id="s1"></div>
+            <div class="slot" id="s2"></div>
+            <div class="slot" id="s3"></div>
+            <div class="slot" id="s4"></div>
+        </div>
+        <div class="regen-timer" id="regen-timer">Loading...</div>
+    </div>
+
+    <button id="ad-btn" class="btn" onclick="watchAd()" disabled>⏳ Connecting...</button>
+    <div class="status-msg" id="status-msg"></div>
+
     <script>
         // ── Telegram setup ──────────────────────────────────────────
         Telegram.WebApp.ready();
@@ -28,11 +153,16 @@
         const MAX_ENERGY      = 5;
         const REGEN_MS        = 24 * 60 * 1000;   // 24 minutes per energy
         const STORAGE_KEY_E   = 'cashyads_energy';
-        const STORAGE_KEY_T   = 'cashyads_last_watch';
+        const STORAGE_KEY_T   = 'cashyads_last_watch'; // timestamp of last ad watch
+
+        // ── RichAds config ──────────────────────────────────────────
+        // 👇 Replace with your actual RichAds TMA block/spot ID
+        const RICHADS_BLOCK_ID = 'YOUR_RICHADS_BLOCK_ID';
 
         // ── State ───────────────────────────────────────────────────
+        let adReady    = false;   // RichAds SDK initialised
         let energy     = MAX_ENERGY;
-        let lastWatch  = 0;       
+        let lastWatch  = 0;       // Unix ms of last successful ad watch
         let regenTimer = null;
 
         // ── LocalStorage helpers ────────────────────────────────────
@@ -55,8 +185,10 @@
         }
 
         // ── Regen logic ─────────────────────────────────────────────
+        // Work out how many energy units have regenerated since lastWatch,
+        // cap at MAX_ENERGY, and return ms until next regen.
         function applyRegen() {
-            if (energy >= MAX_ENERGY) return 0;       
+            if (energy >= MAX_ENERGY) return 0;       // full — no timer needed
             if (lastWatch === 0)      return 0;
 
             const now     = Date.now();
@@ -65,6 +197,7 @@
 
             if (gained > 0) {
                 energy    = Math.min(energy + gained, MAX_ENERGY);
+                // Shift lastWatch forward by the consumed regen intervals
                 lastWatch = lastWatch + gained * REGEN_MS;
                 saveEnergy();
             }
@@ -77,14 +210,17 @@
         function updateUI() {
             const msLeft = applyRegen();
 
+            // Slots
             for (let i = 0; i < MAX_ENERGY; i++) {
                 document.getElementById('s' + i).classList.toggle('filled', i < energy);
             }
 
+            // Energy text
             document.getElementById('energy-text').textContent = `⚡ Energy: ${energy} / ${MAX_ENERGY}`;
             document.getElementById('ads-left-text').textContent =
                 energy > 0 ? `${energy} ad${energy > 1 ? 's' : ''} remaining` : 'Recharging…';
 
+            // Regen timer
             const timerEl = document.getElementById('regen-timer');
             if (energy >= MAX_ENERGY) {
                 timerEl.textContent = '✅ Energy full';
@@ -96,11 +232,12 @@
                 timerEl.className   = 'regen-timer active';
             }
 
+            // Button
             const btn = document.getElementById('ad-btn');
             if (energy <= 0) {
                 btn.disabled   = true;
                 btn.innerText  = '⚡ No energy — wait for recharge';
-            } else if (typeof window.TelegramAdsController === 'undefined') {
+            } else if (!adReady) {
                 btn.disabled  = true;
                 btn.innerText = '⏳ Connecting…';
             } else {
@@ -113,41 +250,37 @@
             if (regenTimer) clearInterval(regenTimer);
             regenTimer = setInterval(() => {
                 updateUI();
+                // If now full, stop ticking
                 if (energy >= MAX_ENERGY) clearInterval(regenTimer);
             }, 1000);
         }
 
-        function setStatus(msg, isError) {
-            const el      = document.getElementById('status-msg');
-            el.textContent = msg;
-            el.className  = 'status-msg' + (isError ? ' error' : '');
-        }
+        // ── RichAds initialisation ───────────────────────────────────
+        // RichAds TMA SDK exposes window.RichAds.init({ blockId }) → Promise<showFn>
+        // Replace the init/show calls below if your account uses a different API surface.
+        let showRichAd = null;
 
-        // ── Success Logic (Reward the User) ──────────────────────────
-        function handleAdSuccess() {
-            energy--;
-            if (lastWatch === 0 || energy === MAX_ENERGY - 1) {
-                lastWatch = Date.now();
+        function initRichAds() {
+            if (typeof window.RichAds !== 'undefined' && typeof window.RichAds.init === 'function') {
+                window.RichAds.init({ blockId: RICHADS_BLOCK_ID })
+                    .then(showFn => {
+                        showRichAd = showFn;
+                        adReady    = true;
+                        updateUI();
+                    })
+                    .catch(err => {
+                        console.error('RichAds init error:', err);
+                        setStatus('❌ No ads available right now.', true);
+                    });
+            } else {
+                console.error('RichAds SDK not found.');
+                setStatus('❌ Ad network failed to load.', true);
             }
-            saveEnergy();
-            updateUI();
-            startRegenClock();
-
-            // Tell the bot: ad completed + remaining energy
-            Telegram.WebApp.sendData(JSON.stringify({
-                ad_completed: true,
-                energy_left:  energy
-            }));
-            
-            Telegram.WebApp.close();
         }
 
         // ── Watch ad ────────────────────────────────────────────────
         function watchAd() {
-            if (typeof window.TelegramAdsController === 'undefined') {
-                setStatus('❌ Ad network not ready yet.', true);
-                return;
-            }
+            if (!adReady || !showRichAd) return;
             if (energy <= 0) {
                 setStatus('⚡ No energy! Wait for recharge.', true);
                 return;
@@ -158,41 +291,40 @@
             btn.innerText = '⏳ Playing ad…';
             setStatus('');
 
-            // Safety net
-            let safetyTimer = setTimeout(() => {
-                btn.disabled = false;
-                btn.innerText = '▶ Watch Ad Now';
-                setStatus('⚠️ Ad took too long to load. Please try again.', true);
-            }, 15000); 
+            showRichAd()
+                .then(() => {
+                    // Deduct energy on success
+                    energy--;
+                    if (lastWatch === 0 || energy === MAX_ENERGY - 1) {
+                        // First deduction — anchor the regen clock
+                        lastWatch = Date.now();
+                    }
+                    saveEnergy();
+                    updateUI();
+                    startRegenClock();
 
-            try {
-                // Call show() completely empty. Many SDKs break if you pass arguments they don't expect.
-                const adRequest = window.TelegramAdsController.show();
+                    // Tell the bot: ad completed + remaining energy
+                    Telegram.WebApp.sendData(JSON.stringify({
+                        ad_completed: true,
+                        energy_left:  energy
+                    }));
+                    Telegram.WebApp.close();
+                })
+                .catch(err => {
+                    console.error('Ad skipped/failed:', err);
+                    btn.disabled  = false;
+                    btn.innerText = '▶ Watch Ad Now';
+                    setStatus('Ad was skipped — please watch the full ad to earn.', true);
+                    // Tell bot: not rewarded
+                    Telegram.WebApp.sendData(JSON.stringify({ ad_completed: false }));
+                    Telegram.WebApp.close();
+                });
+        }
 
-                if (adRequest && typeof adRequest.then === 'function') {
-                    adRequest
-                        .then(() => {
-                            clearTimeout(safetyTimer); 
-                            handleAdSuccess();
-                        })
-                        .catch((err) => {
-                            clearTimeout(safetyTimer); 
-                            btn.disabled  = false;
-                            btn.innerText = '▶ Watch Ad Now';
-                            setStatus('Ad failed or was skipped.', true);
-                        });
-                } else {
-                    // If it doesn't return a promise, it might just open the ad immediately
-                    clearTimeout(safetyTimer);
-                    setStatus('⚠️ Ad signal sent, waiting for completion...', false);
-                }
-            } catch (error) {
-                // If it crashes, print the EXACT error to the screen so we can see what's wrong.
-                clearTimeout(safetyTimer);
-                btn.disabled = false;
-                btn.innerText = '▶ Watch Ad Now';
-                setStatus('ERROR: ' + error.message, true);
-            }
+        function setStatus(msg, isError) {
+            const el      = document.getElementById('status-msg');
+            el.textContent = msg;
+            el.className  = 'status-msg' + (isError ? ' error' : '');
         }
 
         // ── Bootstrap ────────────────────────────────────────────────
@@ -200,6 +332,17 @@
         applyRegen();
         updateUI();
         startRegenClock();
+    </script>
+
+    <!--
+        👇 Replace this src with your actual RichAds TMA SDK URL.
+           You can find it in your RichAds dashboard under:
+           Traffic Sources → Telegram Mini Apps → Get Code → SDK URL
+    -->
+    <script
+        src="https://cdn.richads.com/tma/sdk.js"
+        onload="initRichAds()"
+        onerror="setStatus('❌ Failed to load ad network.', true)">
     </script>
 </body>
 </html>
