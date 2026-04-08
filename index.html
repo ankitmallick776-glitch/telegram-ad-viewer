@@ -8,7 +8,18 @@
     <meta http-equiv="Expires" content="0">
     <title>Watch Ad & Earn</title>
 
+    <!-- ✅ STEP 1: Telegram Web App (required by RichAds) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- ✅ STEP 2: RichAds SDK + initialise (exact snippet from dashboard) -->
+    <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js"></script>
+    <script>
+        window.TelegramAdsController = new TelegramAdsController();
+        window.TelegramAdsController.initialize({
+            pubId: "993542",
+            appId: "6951",
+        });
+    </script>
 
     <style>
         * { box-sizing: border-box; }
@@ -220,61 +231,22 @@
         }
 
         function setStatus(msg, isError) {
-            const el      = document.getElementById('status-msg');
+            const el     = document.getElementById('status-msg');
             el.textContent = msg;
-            el.className  = 'status-msg' + (isError ? ' error' : '');
+            el.className = 'status-msg' + (isError ? ' error' : '');
         }
 
-        // ── RichAds: dynamically inject SDK then initialise ──────────
-        function initRichAds() {
-            // Already loaded (e.g. cached)?
-            if (typeof TelegramAdsController !== 'undefined') {
-                setupController();
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src   = 'https://richinfo.co/richpartners/telegram/js/tg-ob.js';
-            script.async = true;
-
-            script.onload = function () {
-                // Small delay to let the script finish defining its globals
-                setTimeout(function () {
-                    if (typeof TelegramAdsController !== 'undefined') {
-                        setupController();
-                    } else {
-                        console.error('TelegramAdsController still undefined after load');
-                        setStatus('❌ Ad network failed to initialise.', true);
-                    }
-                }, 500);
-            };
-
-            script.onerror = function () {
-                console.error('RichAds SDK script failed to load');
-                setStatus('❌ Ad network failed to load. Check your internet connection.', true);
-            };
-
-            document.head.appendChild(script);
-        }
-
-        function setupController() {
-            try {
-                window.TelegramAdsController = new TelegramAdsController();
-                
-                // 👇 UPDATED PUB ID & APP ID HERE 👇
-                window.TelegramAdsController.initialize({
-                    pubId: "993542",
-                    appId: "6951",
-                });
-                
+        // ── Mark ad as ready once page fully loads ───────────────────
+        // TelegramAdsController is already initialised in <head>.
+        // We just wait for window.load to confirm everything is settled.
+        window.addEventListener('load', function () {
+            if (typeof window.TelegramAdsController !== 'undefined') {
                 adReady = true;
                 updateUI();
-                console.log('✅ RichAds TelegramAdsController ready');
-            } catch (err) {
-                console.error('RichAds initialize() error:', err);
-                setStatus('❌ Ad network error: ' + err.message, true);
+            } else {
+                setStatus('❌ Ad network failed to load.', true);
             }
-        }
+        });
 
         // ── Watch ad ────────────────────────────────────────────────
         function watchAd() {
@@ -315,9 +287,6 @@
         applyRegen();
         updateUI();
         startRegenClock();
-
-        // Init after full page load so telegram-web-app.js is confirmed ready
-        window.addEventListener('load', initRichAds);
     </script>
 </body>
 </html>
